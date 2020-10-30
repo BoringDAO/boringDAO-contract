@@ -24,6 +24,9 @@ contract AddressBook is Ownable, IAddressBook {
         public
         override
     {
+        if (asset2eth[assetName][assetAddr] != address(0) ) {
+            require(asset2eth[assetName][assetAddr] == msg.sender);
+        }
         asset2eth[assetName][assetAddr] = msg.sender;
         eth2asset[msg.sender][assetName] = assetAddr;
     }

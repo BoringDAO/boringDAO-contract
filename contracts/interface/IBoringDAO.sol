@@ -11,7 +11,8 @@ interface IBoringDAO {
     function approveMint(bytes32 tunnelKey, string memory _txid, uint _amount, string memory assetAddress) external;
     function burnBToken(bytes32 _tunnelKey, uint _amount) external;
 
-    function getTrustee(uint index) external returns(address);
-    function getTrusteeCount() external returns(uint);
+    function getTrustee(uint index) external view returns(address);
+    function getTrusteeCount() external view returns(uint);
+    function getRandomTrustee() external view returns (address);
 
 }

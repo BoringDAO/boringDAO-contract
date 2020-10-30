@@ -31,7 +31,6 @@ contract FeePool is ReentrancyGuard, IFeePool{
 
 
 
-    uint private _totalSupply;
     mapping(address => uint) private _balances;
 
     constructor(IAddressResolver _addrReso, bytes32 _tunnelKey, bytes32 _btokenKey, bytes32 _ptokenKey) public {
@@ -54,7 +53,7 @@ contract FeePool is ReentrancyGuard, IFeePool{
     }
 
     function totalSupply() external view returns (uint256) {
-        return _totalSupply;
+        return ptoken().totalSupply();
     }
 
     function balanceOf(address account) external view returns (uint256) {
@@ -100,14 +99,9 @@ contract FeePool is ReentrancyGuard, IFeePool{
         _balances[account] = _balances[account].add(amount);
     }
 
-    // function claimFeeByTunnel(address account) external onlyTunnel {
-    //     _claimFee(account);
-    // }
-
     function withdraw(address account, uint amount) external override onlyTunnel{
         _claimFee(account);
         _balances[account] = _balances[account].sub(amount);
-        // _totalSupply = _totalSupply.sub(amount);
     }
 
     function claimFee() external {
@@ -116,14 +110,14 @@ contract FeePool is ReentrancyGuard, IFeePool{
 
     function _claimFee(address account) internal {
         (uint earnedBOR, uint earnedBToken) = earned(account);
-
-        bor().transfer(account, earnedBOR);
         userBORFee[account] = 0;
         userBORFeePaid[account] = borFeePerTokenStored;
 
-        btoken().transfer(account, earnedBToken);
         userBTokenFee[account] = 0;
         userBTokenFeePaid[account] = bTokenFeePerTokenStored;
+        
+        bor().transfer(account, earnedBOR);
+        btoken().transfer(account, earnedBToken);
 
     }
 

@@ -12,11 +12,26 @@ contract ParamBook is Ownable {
         params[name] = value;
     }
 
+    function setMultiParams(bytes32[] memory names, uint[] memory values) public onlyOwner {
+        require(names.length == values.length);
+        for (uint i=0; i < names.length; i++ ) {
+            params[names[i]] = values[i];
+        }
+    }
+
     function setParams2(
         bytes32 name1,
         bytes32 name2,
         uint256 value
     ) public onlyOwner {
         params2[name1][name2] = value;
+    }
+
+    function setMultiParams2(bytes32[] memory names1, bytes32[] memory names2, uint[] memory values) public onlyOwner {
+        require(names1.length == names2.length);
+        require(names1.length == values.length);
+        for(uint i=0; i < names1.length; i++) {
+            params2[names1[i]][names2[i]] = values[i];
+        }
     }
 }

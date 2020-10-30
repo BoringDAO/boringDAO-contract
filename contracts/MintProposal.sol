@@ -18,14 +18,14 @@ contract MintProposal is IMintProposal {
 
     struct Proposal {
         bytes32 tunnelKey;
-        string assetAddress;
-        string txid;
         uint256 amount;
-        address creater;
         uint256 voteCount;
+        address creater;
         bool finished;
         bool isExist;
         mapping(address => bool) voteState;
+        string assetAddress;
+        string txid;
     }
     // mapping(address => bool) voteState;
 
@@ -61,7 +61,11 @@ contract MintProposal is IMintProposal {
         } else {
             // exist proposal
             Proposal storage p = proposals[pid];
-            require(p.voteState[trustee] == false, "voted");
+            // had voted nothing to do more
+            if(p.voteState[trustee] == true) {
+                return false;
+            }
+            // proposal finished noting to do more
             if (p.finished) {
                 return false;
             }
@@ -81,7 +85,7 @@ contract MintProposal is IMintProposal {
     }
 
     modifier onlyBoringDAO {
-        require(msg.sender == addrReso.key2address(BORINGDAO));
+        require(msg.sender == addrReso.key2address(BORINGDAO), "MintProposal::caller is not boringDAO");
         _;
     }
 

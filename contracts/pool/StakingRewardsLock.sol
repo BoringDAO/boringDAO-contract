@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, ReentrancyGuard {
+contract StakingRewardsLock is IStakingRewards, RewardsDistributionRecipient, ReentrancyGuard {
 
     using SafeMath for uint;
     using Math for uint;
@@ -18,27 +18,38 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     IERC20 public rewardsToken;
     IERC20 public stakingToken;
-    uint public periodFinish = 0;
+    uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
-    uint256 public rewardsDuration = 14 days;
-    uint public rewardsDuration2 = 166 days;
+    uint256 public rewardsDuration;
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
+    uint256 public lockDuration;
 
     mapping(address => uint256) public userRewardPerTokenPaid;
-    mapping(address => uint256) public rewards;
+    mapping(address => uint256) public unlockRewards;
+    mapping(address => uint256) public lockRewards;
+    mapping(address => uint256) public userLockTime;
 
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
 
+    uint public unlockPercent;
+    uint public lockPercent;
+
     constructor(
         address _rewardsDistribution,
         address _rewardsToken,
-        address _stakingToken
+        address _stakingToken,
+        uint256 _lockDuration,
+        uint256 _unlockPercent,
+        uint256 _lockPercent
     ) public {
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
         rewardsDistribution = _rewardsDistribution;
+        lockDuration = _lockDuration;
+        unlockPercent = _unlockPercent;
+        lockPercent = _lockPercent;
     }
 
     /* ========== VIEWS ========== */
@@ -65,8 +76,21 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
             );
     }
 
-    function earned(address account) public override view returns (uint256) {
-        return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(rewards[account]);
+    function earned(address account) public override view returns (uint256, uint256) {
+        uint earnedToken = earnedDuration(account);
+        if(block.timestamp >= userLockTime[account]) {
+            uint unlockAmount = unlockRewards[account].add(lockRewards[account]).add(earnedToken);
+            return (unlockAmount, 0);
+        } else {
+            uint unlockAmount = unlockRewards[account].add(earnedToken.mul(unlockPercent).div(100));
+            uint lockAmount = lockRewards[account].add(earnedToken.mul(lockPercent).div(100));
+            return (unlockAmount, lockAmount);
+        }
+    }
+
+
+    function earnedDuration(address account) internal view returns (uint256) {
+        return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18);
     }
 
     function getRewardForDuration() external override view returns (uint256) {
@@ -77,6 +101,9 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     function stakeWithPermit(uint256 amount, uint deadline, uint8 v, bytes32 r, bytes32 s) external nonReentrant updateReward(msg.sender) {
         require(amount > 0, "Cannot stake 0");
+        if (userLockTime[msg.sender] == 0) {
+            userLockTime[msg.sender] = block.timestamp.add(lockDuration);
+        }
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
 
@@ -89,6 +116,9 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     function stake(uint256 amount) external override nonReentrant updateReward(msg.sender) {
         require(amount > 0, "Cannot stake 0");
+        if (userLockTime[msg.sender] == 0) {
+            userLockTime[msg.sender] = block.timestamp.add(lockDuration);
+        }
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
@@ -104,9 +134,9 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     }
 
     function getReward() public override nonReentrant updateReward(msg.sender) {
-        uint256 reward = rewards[msg.sender];
+        uint256 reward = unlockRewards[msg.sender];
         if (reward > 0) {
-            rewards[msg.sender] = 0;
+            unlockRewards[msg.sender] = 0;
             rewardsToken.safeTransfer(msg.sender, reward);
             emit RewardPaid(msg.sender, reward);
         }
@@ -147,7 +177,9 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         rewardPerTokenStored = rewardPerToken();
         lastUpdateTime = lastTimeRewardApplicable();
         if (account != address(0)) {
-            rewards[account] = earned(account);
+            (uint unlock, uint lock) = earned(account);
+            unlockRewards[account] = unlock;
+            lockRewards[account] = lock;
             userRewardPerTokenPaid[account] = rewardPerTokenStored;
         }
         _;

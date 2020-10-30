@@ -17,6 +17,14 @@ contract AddressResolver is Ownable, IAddressResolver {
         address2key[addr] = key;
     }
 
+    function setMultiAddress(bytes32[] memory keys, address[] memory addrs) public override onlyOwner {
+        require(keys.length == addrs.length, "parmameter number not match");
+        for (uint i=0; i < keys.length; i++) {
+            key2address[keys[i]] = addrs[i];
+            address2key[addrs[i]] = keys[i];
+        }
+    }
+
     function requireAndKey2Address(bytes32 name, string calldata reason) external view override returns(address) {
         address addr = key2address[name];
         require(addr != address(0), reason);

@@ -1,3 +1,4 @@
+  
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
@@ -7,7 +8,7 @@ interface IStakingRewards {
     
     function rewardPerToken() external view returns (uint256);
 
-    function earned(address account) external view returns (uint256);
+    function earned(address account) external view returns (uint256, uint256);
 
     function getRewardForDuration() external view returns (uint256);
 

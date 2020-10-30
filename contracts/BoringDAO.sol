@@ -3,29 +3,31 @@ pragma solidity ^0.6.12;
 
 import "./interface/IBoringDAO.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interface/IAddressResolver.sol";
 import "./interface/ITunnel.sol";
 import "./interface/IBoring.sol";
-import "./interface/IBORToken.sol";
 import "./ParamBook.sol";
 import "./lib/SafeDecimalMath.sol";
 import "./interface/IAddressBook.sol";
 import "./interface/IMintProposal.sol";
 import "./interface/IOracle.sol";
+import "./interface/ICap.sol";
 
 /**
 @notice The BoringDAO contract is the entrance to the entire system, 
 providing the functions of pledge BOR, redeem BOR, mint bBTC, and destroy bBTC
  */
-contract BoringDAO is AccessControl, IBoringDAO {
+contract BoringDAO is AccessControl, IBoringDAO, Pausable {
     using SafeDecimalMath for uint256;
     using SafeMath for uint256;
 
-    uint public amountByMint;
+    uint256 public amountByMint;
 
     bytes32 public constant TRUSTEE_ROLE = "TRUSTEE_ROLE";
+    bytes32 public constant LIQUIDATION_ROLE = "LIQUIDATION_ROLE";
     bytes32 public constant GOV_ROLE = "GOV_ROLE";
 
     bytes32 public constant GOVER = "gover";
@@ -35,70 +37,97 @@ contract BoringDAO is AccessControl, IBoringDAO {
     bytes32 public constant ORACLE = "Oracle";
     bytes32 public constant ADDRESS_BOOK = "AddressBook";
 
-
     bytes32 public constant TUNNEL_MINT_FEE_RATE = "mint fee";
+    bytes32 public constant NETWORK_FEE = "networkFee";
 
-    IAddressResolver public addrResolver;
+    IAddressResolver public addrReso;
 
     // tunnels
     ITunnel[] public tunnels;
 
-    constructor(IAddressResolver _addrResolver, address[] memory _trustees)
-        public
-    {
+    uint256 public mintCap;
+
+    constructor(IAddressResolver _addrReso, address[] memory _trustees, uint _mintCap) public {
         // set up resolver
-        addrResolver = _addrResolver;
+        addrReso = _addrReso;
+        mintCap = _mintCap;
         // set up trustee
         for (uint256 i = 0; i < _trustees.length; i++) {
-            require(
-                _trustees[i] != address(0),
-                "Trustee Should not address(0)"
-            );
             _setupRole(TRUSTEE_ROLE, _trustees[i]);
         }
         // set up gov
         _setupRole(GOV_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     // function
     function gover() internal view returns (address) {
-        return addrResolver.key2address(GOVER);
+        return addrReso.key2address(GOVER);
     }
 
     function tunnel(bytes32 tunnelKey) internal view returns (ITunnel) {
-        return ITunnel(addrResolver.key2address(tunnelKey));
+        return ITunnel(addrReso.key2address(tunnelKey));
+    }
+
+    function btoken(bytes32 symbol) internal view returns (IERC20) {
+        return IERC20(addrReso.key2address(symbol));
     }
 
     function borERC20() internal view returns (IERC20) {
-        return IERC20(addrResolver.key2address(BOR));
+        return IERC20(addrReso.key2address(BOR));
     }
 
-    function bor() internal view returns(IBORToken){
-        return IBORToken(addrResolver.key2address(BOR));
+    function borCap() internal view returns (ICap) {
+        return ICap(addrReso.key2address(BOR));
     }
-
 
     function paramBook() internal view returns (ParamBook) {
-        return ParamBook(addrResolver.key2address(PARAM_BOOK));
+        return ParamBook(addrReso.key2address(PARAM_BOOK));
     }
 
     function addrBook() internal view returns (IAddressBook) {
-        return IAddressBook(addrResolver.key2address(ADDRESS_BOOK));
+        return IAddressBook(addrReso.key2address(ADDRESS_BOOK));
     }
 
     function mintProposal() internal view returns (IMintProposal) {
-        return IMintProposal(addrResolver.key2address(MINT_PROPOSAL));
+        return IMintProposal(addrReso.key2address(MINT_PROPOSAL));
     }
 
     function oracle() internal view returns (IOracle) {
-        return IOracle(addrResolver.key2address(ORACLE));
+        return IOracle(addrReso.key2address(ORACLE));
     }
+
+    function getTrustee(uint256 index)
+        external
+        override
+        view
+        returns (address)
+    {
+        address addr = getRoleMember(TRUSTEE_ROLE, index);
+        return addr;
+    }
+
+    function getTrusteeCount() external override view returns (uint256) {
+        return getRoleMemberCount(TRUSTEE_ROLE);
+    }
+
+    function getRandomTrustee() public override view returns (address) {
+        uint256 trusteeCount = getRoleMemberCount(TRUSTEE_ROLE);
+        uint256 index = uint256(
+            keccak256(abi.encodePacked(now, block.difficulty))
+        )
+            .mod(trusteeCount);
+        address trustee = getRoleMember(TRUSTEE_ROLE, index);
+        return trustee;
+    }
+
     /**
     @notice tunnelKey is byte32("symbol"), eg. bytes32("BTC")
      */
     function pledge(bytes32 _tunnelKey, uint256 _amount)
         public
         override
+        whenNotPaused
         whenContractExist(_tunnelKey)
     {
         require(
@@ -120,6 +149,7 @@ contract BoringDAO is AccessControl, IBoringDAO {
     function redeem(bytes32 _tunnelKey, uint256 _amount)
         public
         override
+        whenNotPaused
         whenContractExist(_tunnelKey)
     {
         tunnel(_tunnelKey).redeem(msg.sender, _amount);
@@ -129,6 +159,7 @@ contract BoringDAO is AccessControl, IBoringDAO {
         public
         override
         whenContractExist(_tunnelKey)
+        whenTunnelNotPause(_tunnelKey)
     {
         require(
             bytes(addrBook().eth2asset(msg.sender, _tunnelKey)).length != 0,
@@ -148,12 +179,23 @@ contract BoringDAO is AccessControl, IBoringDAO {
         string memory _txid,
         uint256 _amount,
         string memory _assetAddress
-    ) public override onlyTrustee {
+    ) public override whenNotPaused whenTunnelNotPause(_tunnelKey) onlyTrustee {
         // crate a mint proposal
         require(
             addrBook().asset2eth(_tunnelKey, _assetAddress) != address(0),
             "not assocated eth address"
         );
+        uint256 canIssueAmount = tunnel(_tunnelKey).canIssueAmount();
+        if (_amount.add(btoken(bytes32("bBTC")).totalSupply()) > canIssueAmount) {
+            emit NotEnoughPledgeValue(
+                _tunnelKey,
+                _txid,
+                _amount,
+                _assetAddress,
+                msg.sender
+            );
+            return;
+        }
         uint256 trusteeCount = getRoleMemberCount(TRUSTEE_ROLE);
         bool shouldMint = mintProposal().approve(
             _tunnelKey,
@@ -167,58 +209,46 @@ contract BoringDAO is AccessControl, IBoringDAO {
             return;
         }
         // vote processed, to check pledge token value
-        uint256 canIssueAmount = tunnel(_tunnelKey).canIssueAmount();
-        if (_amount > canIssueAmount) {
-            // cant issue
-            // event not enough pledge value
-            emit NotEnoughPledgeValue(
-                _tunnelKey,
-                _txid,
-                _amount,
-                _assetAddress
-            );
-        } else {
+        address to = addrBook().asset2eth(_tunnelKey, _assetAddress);
+        // fee calculate in tunnel
+        tunnel(_tunnelKey).issue(to, _amount);
 
-            address to = addrBook().asset2eth(_tunnelKey, _assetAddress);
-            // fee calculate in tunnel
-            tunnel(_tunnelKey).issue(to, _amount);
-            // mint bor reward
-            uint256 mintFeeRate = paramBook().params2(
-                _tunnelKey,
-                TUNNEL_MINT_FEE_RATE
-            );
-            uint256 assetPrice = oracle().getPrice(_tunnelKey);
-            uint256 borPrice = oracle().getPrice(BOR);
-            uint256 factor_index = amountByMint.div(10000 * 10**18);
-            uint256 factor = (4**factor_index).mul(10**18).div(5**factor_index);
-
-            uint256 mintAmountInte = assetPrice
-                .mul(2)
-                .multiplyDecimalRound(_amount)
-                .multiplyDecimalRound(mintFeeRate);
-            uint256 mintAmount = mintAmountInte
-                .multiplyDecimalRound(factor)
-                .divideDecimalRound(borPrice);
-            uint mintCap = bor().totalCap().mul(37).div(100);
-            if (amountByMint.add(mintAmount) >= mintCap) {
-                mintAmount = mintCap.sub(amountByMint);
-                amountByMint = mintCap;
-            } else {
-                amountByMint = amountByMint.add(mintAmount);
-            }
-            IBORToken(address(borERC20())).boringDAOMint(to, mintAmount);
+        uint borMintAmount = calculateMintBORAmount(_tunnelKey, _amount);
+        if(borMintAmount != 0) {
+            amountByMint = amountByMint.add(borMintAmount);
+            borERC20().transfer(to, borMintAmount);
         }
     }
 
-    function getTrustee(uint256 index) external override returns (address) {
-        address addr = getRoleMember(TRUSTEE_ROLE, index);
-        return addr;
+    function calculateMintBORAmount(bytes32 _tunnelKey, uint _amount) public view returns (uint) {
+        if (amountByMint >= mintCap) {
+            return 0;
+        }
+        uint256 assetPrice = oracle().getPrice(_tunnelKey);
+        uint256 borPrice = oracle().getPrice(BOR);
+        uint256 reductionTimes = amountByMint.div(10_000e18);
+        uint256 mintFeeRate = paramBook().params2(
+            _tunnelKey,
+            TUNNEL_MINT_FEE_RATE
+        );
+        // for decimal calculation, so mul 1e18
+        uint256 reductionFactor = (4**reductionTimes).mul(1e18).div(5**reductionTimes);
+        uint networkFee = paramBook().params2(_tunnelKey, NETWORK_FEE);
+        uint baseAmount = _amount.multiplyDecimalRound(mintFeeRate).add(networkFee);
+        uint borAmount = assetPrice.mul(2).multiplyDecimalRound(baseAmount).multiplyDecimalRound(reductionFactor).divideDecimalRound(borPrice);
+        if (amountByMint.add(borAmount) >= mintCap) {
+            borAmount = mintCap.sub(amountByMint);
+        }
+        return borAmount;
     }
 
-    function getTrusteeCount() external override returns (uint256) {
-        return getRoleMemberCount(TRUSTEE_ROLE);
+    function pause() public onlyLiquidation {
+        _pause();
     }
 
+    function unpause() public onlyLiquidation {
+        _unpause();
+    }
 
     modifier onlyGov {
         require(hasRole(GOV_ROLE, msg.sender), "Caller is not gov");
@@ -230,15 +260,25 @@ contract BoringDAO is AccessControl, IBoringDAO {
         _;
     }
 
+    modifier onlyLiquidation {
+        require(
+            hasRole(LIQUIDATION_ROLE, msg.sender),
+            "Caller is not liquidation contract"
+        );
+        _;
+    }
+
     modifier whenContractExist(bytes32 key) {
         require(
-            address(addrResolver) != address(0),
-            "Address Resolver not set"
-        );
-        require(
-            addrResolver.key2address(key) != address(0),
+            addrReso.key2address(key) != address(0),
             "Contract not exist"
         );
+        _;
+    }
+
+    modifier whenTunnelNotPause(bytes32 _tunnelKey) {
+        address tunnelAddress = addrReso.requireAndKey2Address(_tunnelKey, "tunnel not exist");
+        require(IPaused(tunnelAddress).paused() == false, "tunnel is paused");
         _;
     }
 
@@ -246,6 +286,11 @@ contract BoringDAO is AccessControl, IBoringDAO {
         bytes32 indexed _tunnelKey,
         string indexed _txid,
         uint256 _amount,
-        string assetAddress
+        string assetAddress,
+        address trustee
     );
+}
+
+interface IPaused {
+    function paused() external view returns (bool);
 }

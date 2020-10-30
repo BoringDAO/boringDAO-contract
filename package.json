@@ -13,6 +13,7 @@
     "@openzeppelin/truffle-upgrades": "^1.0.1",
     "@truffle/hdwallet-provider": "^1.0.43",
     "chai": "^4.2.0",
+    "eth-gas-reporter": "^0.2.18",
     "truffle": "^5.1.42",
     "web3-utils": "^1.2.11"
   },

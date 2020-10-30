@@ -2,11 +2,12 @@
 
 pragma solidity ^0.6.12;
 
-import "./StakingRewards.sol";
+import "./StakingRewardsLock.sol";
 import "../interface/IOracle.sol";
 import "../lib/SafeDecimalMath.sol";
+import "../interface/ILiquidate.sol";
 
-contract SatellitePool is StakingRewards {
+contract SatellitePool is StakingRewardsLock, ILiquidate {
     using SafeDecimalMath for uint;
 
     address public liquidator;
@@ -18,17 +19,17 @@ contract SatellitePool is StakingRewards {
         address _rewardsDistribution,
         address _rewardsToken,
         address _stakingToken,
-        IOracle _oracle,
+        address _oracle,
         bytes32 _sts
     ) public 
-        StakingRewards(_rewardsDistribution, _rewardsToken, _stakingToken)
+        StakingRewardsLock(_rewardsDistribution, _rewardsToken, _stakingToken, 8000, 25, 75)
     {
         liquidator = _liquidator;
-        oracle = _oracle;
+        oracle = IOracle(_oracle);
         stakingTokenSymbol = _sts;
     }
 
-    function liquidate() public onlyLiquidator {
+    function liquidate() public override onlyLiquidator {
         stakingToken.safeTransfer(liquidator, stakingToken.balanceOf(address(this)));
     }
 
