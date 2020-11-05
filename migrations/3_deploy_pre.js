@@ -1,5 +1,6 @@
 const AddressResolver = artifacts.require("AddressResolver");
 const FeePool = artifacts.require("FeePool");
+const TrusteeFeePool = artifacts.require("TrusteeFeePool");
 const InsurancePool = artifacts.require("InsurancePool");
 const MintProposal = artifacts.require("MintProposal");
 const BoringDAO =artifacts.require("BoringDAO");
@@ -7,6 +8,7 @@ const Tunnel = artifacts.require("Tunnel");
 // const BToken = artifacts.require("BToken");
 const BTokenSnapshot = artifacts.require("BTokenSnapshot");
 const PPToken = artifacts.require("PPToken");
+const Bor = artifacts.require("Bor");
 const {trusteesAddress, btcMultiSignAddress} = require("../trustee.json");
 
 const Web3Utils = require('web3-utils');
@@ -21,11 +23,15 @@ module.exports = async (deployer, network, accounts) => {
         console.log("trustee2", accounts[2]);
         console.log("trustee3", accounts[3]);
     }
+
+    const bor = await Bor.deployed();
     
     await deployer.deploy(AddressResolver);
     const addrResolver = await AddressResolver.deployed();
 
     await deployer.deploy(FeePool, addrResolver.address, toBytes32("BTC"), toBytes32("bBTC"), toBytes32("PPT-BTC"));
+
+    await deployer.deploy(TrusteeFeePool, bor.address);
 
     await deployer.deploy(InsurancePool);
 
@@ -33,12 +39,8 @@ module.exports = async (deployer, network, accounts) => {
 
     // BoringDAO
     // if (network === "develop")
-    let trustees = [accounts[1], accounts[2], accounts[3]]
-    if (network == "development") {
-        await deployer.deploy(BoringDAO, addrResolver.address, trustees, Web3Utils.toWei("60000"));
-    } else {
-        await deployer.deploy(BoringDAO, addrResolver.address, trusteesAddress, Web3Utils.toWei("60000"));
-    }
+    await deployer.deploy(BoringDAO, addrResolver.address, Web3Utils.toWei("60000"), accounts[0]);
+    const boringDAO = await BoringDAO.deployed();
 
     // tunnel
     await deployer.deploy(Tunnel, addrResolver.address, toBytes32("bBTC"), toBytes32("BTC"));
@@ -62,7 +64,18 @@ module.exports = async (deployer, network, accounts) => {
     await pptoken.grantRole(toBytes32("MINTER_ROLE"), tunnel.address);
     await pptoken.grantRole(toBytes32("BURNER_ROLE"), tunnel.address);
 
-    
+    // trusteeFeePool settings
+    const trusteeFeePool = await TrusteeFeePool.deployed();
+    // need trusteeFeePool when deploy BoringDAO
+    await addrResolver.setAddress(toBytes32("TrusteeFeePool"), trusteeFeePool.address);
+    await trusteeFeePool.setBoringDAO(boringDAO.address);
+    await trusteeFeePool.setTunnel(tunnel.address);
 
+    let trustees = [accounts[1], accounts[2], accounts[3]]
+    if (network == "development") {
+        boringDAO.addTrustees(trustees);
+    } else {
+        boringDAO.addTrustees(trusteesAddress);
+    }
 
 }

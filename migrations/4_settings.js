@@ -71,10 +71,14 @@ module.exports = async (deployer, network, accounts) => {
     await oracle.setMultiPrice(symbols, prices);
   }
 
-  if (network !== "main") {
+  if (network === "ropsten" || network === "kovan") {
     // active tunnel
+    await bor.approve(boringDAO.address, towei("60000"));
+     await tunnel.setLockDuration(3600);
      await bor.approve(boringDAO.address, Web3Utils.toWei("10000"));
      await boringDAO.pledge(toBytes32("BTC"), Web3Utils.toWei("10000"));
      await tunnel.unpause();
+  } else if (network === "development") {
+    await tunnel.setLockDuration(60);
   }
 };

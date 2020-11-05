@@ -8,13 +8,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interface/IAddressResolver.sol";
 import "./interface/ITunnel.sol";
-import "./interface/IBoring.sol";
 import "./ParamBook.sol";
 import "./lib/SafeDecimalMath.sol";
-import "./interface/IAddressBook.sol";
 import "./interface/IMintProposal.sol";
 import "./interface/IOracle.sol";
 import "./interface/ICap.sol";
+import "./interface/ITrusteeFeePool.sol";
 
 /**
 @notice The BoringDAO contract is the entrance to the entire system, 
@@ -30,12 +29,12 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
     bytes32 public constant LIQUIDATION_ROLE = "LIQUIDATION_ROLE";
     bytes32 public constant GOV_ROLE = "GOV_ROLE";
 
-    bytes32 public constant GOVER = "gover";
     bytes32 public constant BOR = "BOR";
     bytes32 public constant PARAM_BOOK = "ParamBook";
     bytes32 public constant MINT_PROPOSAL = "MintProposal";
     bytes32 public constant ORACLE = "Oracle";
     bytes32 public constant ADDRESS_BOOK = "AddressBook";
+    bytes32 public constant TRUSTEE_FEE_POOL = "TrusteeFeePool";
 
     bytes32 public constant TUNNEL_MINT_FEE_RATE = "mint fee";
     bytes32 public constant NETWORK_FEE = "networkFee";
@@ -47,23 +46,16 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
 
     uint256 public mintCap;
 
-    constructor(IAddressResolver _addrReso, address[] memory _trustees, uint _mintCap) public {
+    address public mine;
+
+    constructor(IAddressResolver _addrReso, uint _mintCap, address _mine) public {
         // set up resolver
         addrReso = _addrReso;
         mintCap = _mintCap;
-        // set up trustee
-        for (uint256 i = 0; i < _trustees.length; i++) {
-            _setupRole(TRUSTEE_ROLE, _trustees[i]);
-        }
-        // set up gov
-        _setupRole(GOV_ROLE, msg.sender);
+        mine = _mine;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    // function
-    function gover() internal view returns (address) {
-        return addrReso.key2address(GOVER);
-    }
 
     function tunnel(bytes32 tunnelKey) internal view returns (ITunnel) {
         return ITunnel(addrReso.key2address(tunnelKey));
@@ -85,16 +77,16 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
         return ParamBook(addrReso.key2address(PARAM_BOOK));
     }
 
-    function addrBook() internal view returns (IAddressBook) {
-        return IAddressBook(addrReso.key2address(ADDRESS_BOOK));
-    }
-
     function mintProposal() internal view returns (IMintProposal) {
         return IMintProposal(addrReso.key2address(MINT_PROPOSAL));
     }
 
     function oracle() internal view returns (IOracle) {
         return IOracle(addrReso.key2address(ORACLE));
+    }
+
+    function trusteeFeePool() internal view returns (ITrusteeFeePool) {
+        return ITrusteeFeePool(addrReso.requireAndKey2Address(TRUSTEE_FEE_POOL, "BoringDAO::TrusteeFeePool is address(0)"));
     }
 
     function getTrustee(uint256 index)
@@ -119,6 +111,27 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
             .mod(trusteeCount);
         address trustee = getRoleMember(TRUSTEE_ROLE, index);
         return trustee;
+    }
+
+    function addTrustee(address account) public onlyAdmin {
+        _setupRole(TRUSTEE_ROLE, account);
+        trusteeFeePool().enter(account);
+
+    }
+
+    function addTrustees(address[] memory accounts) external onlyAdmin{
+        for (uint256 i = 0; i < accounts.length; i++) {
+            addTrustee(accounts[i]);
+        }
+    }
+
+    function removeTrustee(address account) public onlyAdmin {
+        revokeRole(TRUSTEE_ROLE, account);
+        trusteeFeePool().exit(account);
+    }
+
+    function setMine(address _mine) public onlyAdmin {
+        mine = _mine;
     }
 
     /**
@@ -155,69 +168,63 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
         tunnel(_tunnelKey).redeem(msg.sender, _amount);
     }
 
-    function burnBToken(bytes32 _tunnelKey, uint256 amount)
+    function burnBToken(bytes32 _tunnelKey, uint256 amount, string memory assetAddress)
         public
         override
         whenContractExist(_tunnelKey)
         whenTunnelNotPause(_tunnelKey)
     {
-        require(
-            bytes(addrBook().eth2asset(msg.sender, _tunnelKey)).length != 0,
-            "not associated asset address"
-        );
-        tunnel(_tunnelKey).burn(msg.sender, amount);
+        tunnel(_tunnelKey).burn(msg.sender, amount, assetAddress);
     }
 
     /**
     @notice trustee will call the function to approve mint bToken
     @param _txid the transaction id of bitcoin
     @param _amount the amount to mint, 1BTC = 1bBTC = 1*10**18 weibBTC
-    @param _assetAddress user's btc address
+    @param to mint to the address
      */
     function approveMint(
         bytes32 _tunnelKey,
         string memory _txid,
         uint256 _amount,
-        string memory _assetAddress
+        address to,
+        string memory assetAddress
     ) public override whenNotPaused whenTunnelNotPause(_tunnelKey) onlyTrustee {
-        // crate a mint proposal
-        require(
-            addrBook().asset2eth(_tunnelKey, _assetAddress) != address(0),
-            "not assocated eth address"
-        );
-        uint256 canIssueAmount = tunnel(_tunnelKey).canIssueAmount();
-        if (_amount.add(btoken(bytes32("bBTC")).totalSupply()) > canIssueAmount) {
-            emit NotEnoughPledgeValue(
-                _tunnelKey,
-                _txid,
-                _amount,
-                _assetAddress,
-                msg.sender
-            );
-            return;
-        }
+        
         uint256 trusteeCount = getRoleMemberCount(TRUSTEE_ROLE);
         bool shouldMint = mintProposal().approve(
             _tunnelKey,
             _txid,
             _amount,
-            _assetAddress,
+            to,
             msg.sender,
             trusteeCount
         );
         if (!shouldMint) {
             return;
         }
-        // vote processed, to check pledge token value
-        address to = addrBook().asset2eth(_tunnelKey, _assetAddress);
+        uint256 canIssueAmount = tunnel(_tunnelKey).canIssueAmount();
+        bytes32 bTokenSymbolKey = tunnel(_tunnelKey).bTokenKey();
+        if (_amount.add(btoken(bTokenSymbolKey).totalSupply()) > canIssueAmount) {
+            emit NotEnoughPledgeValue(
+                _tunnelKey,
+                _txid,
+                _amount,
+                to,
+                msg.sender,
+                assetAddress
+            );
+            return;
+        }
         // fee calculate in tunnel
         tunnel(_tunnelKey).issue(to, _amount);
 
         uint borMintAmount = calculateMintBORAmount(_tunnelKey, _amount);
         if(borMintAmount != 0) {
             amountByMint = amountByMint.add(borMintAmount);
-            borERC20().transfer(to, borMintAmount);
+            borERC20().transferFrom(mine, to, borMintAmount);
         }
+        emit ApproveMintSuccess(_tunnelKey, _txid, _amount, to);
     }
 
     function calculateMintBORAmount(bytes32 _tunnelKey, uint _amount) public view returns (uint) {
@@ -250,13 +257,13 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
         _unpause();
     }
 
-    modifier onlyGov {
-        require(hasRole(GOV_ROLE, msg.sender), "Caller is not gov");
+    modifier onlyTrustee {
+        require(hasRole(TRUSTEE_ROLE, msg.sender), "Caller is not trustee");
         _;
     }
 
-    modifier onlyTrustee {
-        require(hasRole(TRUSTEE_ROLE, msg.sender), "Caller is not trustee");
+    modifier onlyAdmin {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "BoringDAO::caller is not admin");
         _;
     }
 
@@ -286,8 +293,16 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
         bytes32 indexed _tunnelKey,
         string indexed _txid,
         uint256 _amount,
-        string assetAddress,
-        address trustee
+        address to,
+        address trustee,
+        string assetAddress
+    );
+
+    event ApproveMintSuccess(
+        bytes32 _tunnelKey,
+        string _txid,
+        uint256 _amount,
+        address to
     );
 }
 

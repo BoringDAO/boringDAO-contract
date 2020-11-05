@@ -10,12 +10,12 @@ import "./interface/ITunnel.sol";
 import "./ParamBook.sol";
 import "./lib/SafeDecimalMath.sol";
 import "./interface/IBoringDAO.sol";
-import "./interface/IAddressBook.sol";
 import "./interface/IOracle.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interface/IFeePool.sol";
 import "./interface/IStakingRewardsFactory.sol";
 import "./interface/IMintBurn.sol";
+import "./interface/ITrusteeFeePool.sol";
 
 contract Tunnel is Ownable, Pausable, ITunnel {
     using SafeMath for uint256;
@@ -24,7 +24,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     IAddressResolver addrResolver;
     bytes32 public constant BORINGDAO = "BoringDAO";
     // BTOKEN_BTC
-    bytes32 public bTokenKey;
+    bytes32 public override bTokenKey;
     bytes32 public tunnelKey;
     bytes32 public constant MINT_FEE = "mint fee";
     bytes32 public constant BURN_FEE = "burn fee";
@@ -44,6 +44,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     bytes32 public constant NETWORK_FEE = "networkFee";
     bytes32 public constant PLEDGE_TOKEN = "PPT-BTC";
     bytes32 public constant PARAM_BOOK = "ParamBook";
+    bytes32 public constant TRUSTEE_FEE_POOL = "TrusteeFeePool";
     bytes32 public constant SATELLITE_POOL_FACTORY = "BTCSatellitePoolFactory";
 
     mapping(address => uint) public borPledgeInfo;
@@ -61,6 +62,8 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     }
     mapping(address=>RedeemUnlock[]) public unlockInfo;
     mapping(address=>uint256) public unlockNonce;
+
+    uint256 public lockDuration = 86400;
 
     constructor(
         IAddressResolver _addrResolver,
@@ -90,10 +93,6 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         return IBoringDAO(addrResolver.key2address(BORINGDAO));
     }
 
-    function addrBook() internal view returns (IAddressBook) {
-        return IAddressBook(addrResolver.key2address(ADDRESS_BOOK));
-    }
-
     function oracle() internal view returns (IOracle) {
         return IOracle(addrResolver.key2address(ORACLE));
     }
@@ -108,6 +107,10 @@ contract Tunnel is Ownable, Pausable, ITunnel {
 
     function feePool() internal view returns (IFeePool) {
         return IFeePool(addrResolver.key2address(FEE_POOL));
+    }
+
+    function trusteeFeePool() internal view returns (ITrusteeFeePool) {
+        return ITrusteeFeePool(addrResolver.requireAndKey2Address(TRUSTEE_FEE_POOL, "Tunnel::TrusteeFeePool is address(0)"));
     }
 
     function paramBook() internal view returns (ParamBook) {
@@ -141,6 +144,11 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         return (current, newNonce);
     }
 
+    // duration should bigger than lockDuration
+    function setLockDuration(uint duration) public onlyOwner {
+        lockDuration = duration;
+    }
+
     function pledge(address account, uint256 amount)
         external
         override
@@ -167,7 +175,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         // send fee and burn ptoken
         // pledge token and fee
         // burn ptoken and tansfer back BOR
-        lock(account, amount, block.timestamp.add(3600*24));
+        lock(account, amount, block.timestamp.add(lockDuration));
         ppTokenMintBurn().burn(account, amount);
         feePool().withdraw(account, amount);
     }
@@ -198,15 +206,10 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         btokenMintBurn().mint(account, mintAmount);
         // handle fee
         // trustee fee
-        uint256 mintFeeTrusteeRation = getRate(MINT_FEE_TRUSTEE);
-        // todo
-        uint256 mintFeeTrustAmount = mintFeeAmount.multiplyDecimal(mintFeeTrusteeRation).add(networkFee);
-        uint256 trusteeCount = boringDAO().getTrusteeCount();
-        uint256 feePerTrustee = mintFeeTrustAmount.div(trusteeCount);
-        for (uint256 i = 0; i < trusteeCount; i++) {
-            address trustee = boringDAO().getTrustee(i);
-            btokenMintBurn().mint(trustee, feePerTrustee);
-        }
+        uint256 mintFeeTrusteeRatio = getRate(MINT_FEE_TRUSTEE);
+        uint256 mintFeeTrusteeAmount = mintFeeAmount.multiplyDecimal(mintFeeTrusteeRatio).add(networkFee);
+        btokenMintBurn().mint(address(trusteeFeePool()), mintFeeTrusteeAmount);
+        trusteeFeePool().notifyReward(mintFeeTrusteeAmount);
 
         // fee to pledger
         uint256 mintFeePledgerRation = getRate(MINT_FEE_PLEDGER);
@@ -229,7 +232,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     }
 
 
-    function burn(address account, uint256 amount) external override onlyBoringDAO{
+    function burn(address account, uint256 amount, string memory assetAddress) external override onlyBoringDAO{
         uint256 burnFeeAmountBToken = amount.multiplyDecimal(getRate(BURN_FEE));
         // convert to bor amount
         uint burnFeeAmount = oracle().getPrice(tunnelKey).multiplyDecimal(burnFeeAmountBToken).divideDecimal(oracle().getPrice(BOR));
@@ -263,7 +266,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
             account,
             amount,
             boringDAO().getRandomTrustee(),
-            addrBook().eth2asset(account, tunnelKey)
+            assetAddress
         );
     }
 

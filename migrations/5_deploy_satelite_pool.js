@@ -3,7 +3,7 @@ const AddressResolver = artifacts.require("AddressResolver");
 const BTokenSnapshot = artifacts.require("BTokenSnapshot");
 const Bor = artifacts.require("Bor");
 const PPToken = artifacts.require("PPToken");
-const StakingRewardsLockFactory = artifacts.require("StakingRewardsLockFactory");
+const StakingRewardsFactory = artifacts.require("StakingRewardsFactory");
 const SatellitePoolFactory = artifacts.require("SatellitePoolFactory");
 const Oracle = artifacts.require("Oracle");
 const MigratePool = artifacts.require("MigratePool");
@@ -40,7 +40,7 @@ module.exports = async (deployer, network, accounts) => {
     // const srf = await StakingRewardsFactory.deployed();
     // await new Promise(r => setTimeout(r, 60000));
     
-    await deployer.deploy(SatellitePoolFactory, bor.address, Math.floor(Date.now() / 1000)+60)
+    await deployer.deploy(SatellitePoolFactory, bor.address, Math.floor(Date.now() / 1000)+600)
     const spf = await SatellitePoolFactory.deployed();
     // await new Promise(r => setTimeout(r, 60000));
 

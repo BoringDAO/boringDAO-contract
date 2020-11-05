@@ -7,7 +7,7 @@ interface IMintProposal {
         bytes32 _tunnelKey,
         string memory _txid,
         uint256 _amount,
-        string memory _assetAddress,
+        address  to,
         address trustee,
         uint256 trusteeCount
     ) external returns (bool);

@@ -24,7 +24,7 @@ contract MintProposal is IMintProposal {
         bool finished;
         bool isExist;
         mapping(address => bool) voteState;
-        string assetAddress;
+        address to;
         string txid;
     }
     // mapping(address => bool) voteState;
@@ -35,19 +35,19 @@ contract MintProposal is IMintProposal {
         bytes32 _tunnelKey,
         string memory _txid,
         uint256 _amount,
-        string memory _assetAddress,
+        address to,
         address trustee,
         uint256 trusteeCount
     ) public override onlyBoringDAO returns (bool) {
         require(msg.sender == addrReso.key2address(BORINGDAO));
         bytes32 pid = keccak256(
-            abi.encodePacked(_tunnelKey, _txid, _amount, _assetAddress)
+            abi.encodePacked(_tunnelKey, _txid, _amount, to)
         );
         if (proposals[pid].isExist == false) {
             // new proposal
             Proposal memory p = Proposal({
                 tunnelKey: _tunnelKey,
-                assetAddress: _assetAddress,
+                to: to,
                 txid: _txid,
                 amount: _amount,
                 creater: trustee,
@@ -57,7 +57,7 @@ contract MintProposal is IMintProposal {
             });
             proposals[pid] = p;
             proposals[pid].voteState[trustee] = true;
-            emit NewMintProposal(_tunnelKey, _txid, _amount, _assetAddress, trustee, p.voteCount, trusteeCount);
+            emit VoteMintProposal(_tunnelKey, _txid, _amount, to, trustee, p.voteCount, trusteeCount);
         } else {
             // exist proposal
             Proposal storage p = proposals[pid];
@@ -71,13 +71,13 @@ contract MintProposal is IMintProposal {
             }
             p.voteCount = p.voteCount.add(1);
             p.voteState[trustee] = true;
-            emit VoteMintProposal(_tunnelKey, _txid, _amount, _assetAddress, trustee, p.voteCount, trusteeCount);
+            emit VoteMintProposal(_tunnelKey, _txid, _amount, to, trustee, p.voteCount, trusteeCount);
         }
         Proposal storage p = proposals[pid];
         uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(1);
         if (p.voteCount >= threshold) {
             p.finished = true;
-            emit VoteThroughMintProposal(_tunnelKey, _txid, _amount, _assetAddress, trustee, p.voteCount, trusteeCount);
+            emit VoteMintProposal(_tunnelKey, _txid, _amount, to, trustee, p.voteCount, trusteeCount);
             return true;
         } else {
             return false;
@@ -89,33 +89,14 @@ contract MintProposal is IMintProposal {
         _;
     }
 
-    event NewMintProposal(
-        bytes32 _tunnelKey,
-        string _txid,
-        uint256 _amount,
-        string _assetAddress,
-        address trustee,
-        uint votedCount,
-        uint256 trusteeCount
-    );
-
     event VoteMintProposal(
         bytes32 _tunnelKey,
         string _txid,
         uint256 _amount,
-        string _assetAddress,
+        address to,
         address trustee,
         uint votedCount,
         uint256 trusteeCount
     );
 
-    event VoteThroughMintProposal(
-        bytes32 _tunnelKey,
-        string _txid,
-        uint256 _amount,
-        string _assetAddress,
-        address trustee,
-        uint votedCount,
-        uint256 trusteeCount
-    );
 }
