@@ -13,6 +13,7 @@ contract("TimeDistribution", async (accounts) => {
     before(async () => {
         bor = await Bor.deployed();
         td = await TimeDistribution.deployed();
+        await bor.approve(td.address, toWei("10000"));
         console.log("bor address", bor.address);
         console.log("td address", td.address);
     });
@@ -42,5 +43,10 @@ contract("TimeDistribution", async (accounts) => {
         const pending2 = await td.pendingClaim({from: accounts[4]});
         console.log("pending2", fromWei(pending2));
     });
+
+    it("user total token", async () => {
+        let amount = await td.userTotalToken({from: accounts[6]});
+        assert.equal(fromWei(amount), "0");
+    })
 
 });

@@ -20,9 +20,12 @@ contract SatellitePool is StakingRewardsLock, ILiquidate {
         address _rewardsToken,
         address _stakingToken,
         address _oracle,
-        bytes32 _sts
+        bytes32 _sts,
+        uint256 _lockDuration,
+        uint256 _unlockPercent,
+        uint256 _lockPercent
     ) public 
-        StakingRewardsLock(_rewardsDistribution, _rewardsToken, _stakingToken, 8000, 25, 75)
+        StakingRewardsLock(_rewardsDistribution, _rewardsToken, _stakingToken, _lockDuration, _unlockPercent, _lockPercent)
     {
         liquidator = _liquidator;
         oracle = IOracle(_oracle);
@@ -43,8 +46,4 @@ contract SatellitePool is StakingRewardsLock, ILiquidate {
         require(msg.sender == liquidator, "caller is not liquidator");
         _;
     }
-}
-
-interface ERC20Symbol {
-    function symbol() external view returns(string memory);
 }

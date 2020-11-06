@@ -15,19 +15,19 @@ contract FeePool is ReentrancyGuard, IFeePool{
     using SafeDecimalMath for uint;
 
     bytes32 public constant BOR = "BOR";
-    bytes32 public  BTOKEN;
+    bytes32 public  OTOKEN;
     bytes32 public PTOKEN;
 
     bytes32 public tunnelKey;
     IAddressResolver public addrReso;
 
     uint public borFeePerTokenStored;
-    uint public bTokenFeePerTokenStored;
+    uint public oTokenFeePerTokenStored;
 
     mapping(address => uint) public userBORFee;
     mapping(address => uint) public userBORFeePaid;
-    mapping(address => uint) public userBTokenFee;
-    mapping(address => uint) public userBTokenFeePaid;
+    mapping(address => uint) public userOTokenFee;
+    mapping(address => uint) public userOTokenFeePaid;
 
 
 
@@ -36,7 +36,7 @@ contract FeePool is ReentrancyGuard, IFeePool{
     constructor(IAddressResolver _addrReso, bytes32 _tunnelKey, bytes32 _btokenKey, bytes32 _ptokenKey) public {
         addrReso = _addrReso;
         tunnelKey = _tunnelKey;
-        BTOKEN = _btokenKey;
+        OTOKEN = _btokenKey;
         PTOKEN = _ptokenKey;
     }
 
@@ -44,12 +44,12 @@ contract FeePool is ReentrancyGuard, IFeePool{
         return IERC20(addrReso.requireAndKey2Address(BOR, "BOR contract is address(0) in FeePool"));
     }
 
-    function btoken() internal view returns(IERC20) {
-        return IERC20(addrReso.requireAndKey2Address(BTOKEN, "bToken contract is address(0) in FeePool"));
+    function otoken() internal view returns(IERC20) {
+        return IERC20(addrReso.requireAndKey2Address(OTOKEN, "oToken contract is address(0) in FeePool"));
     }
 
     function ptoken() internal view returns(IERC20) {
-        return IERC20(addrReso.requireAndKey2Address(PTOKEN, "bToken contract is address(0) in FeePool"));
+        return IERC20(addrReso.requireAndKey2Address(PTOKEN, "oToken contract is address(0) in FeePool"));
     }
 
     function totalSupply() external view returns (uint256) {
@@ -64,18 +64,18 @@ contract FeePool is ReentrancyGuard, IFeePool{
         return borFeePerTokenStored;
     }
 
-    function bTokenFeePerToken() public view returns(uint) {
-        return borFeePerTokenStored;
+    function oTokenFeePerToken() public view returns(uint) {
+        return oTokenFeePerTokenStored;
     }
 
     function earned(address account) public view override returns(uint, uint) {
         uint borFee = _balances[account].multiplyDecimal(borFeePerTokenStored.sub(userBORFeePaid[account])).add(userBORFee[account]);
-        uint btokenFee = _balances[account].multiplyDecimal(bTokenFeePerTokenStored.sub(userBTokenFeePaid[account])).add(userBTokenFee[account]);
+        uint btokenFee = _balances[account].multiplyDecimal(oTokenFeePerTokenStored.sub(userOTokenFeePaid[account])).add(userOTokenFee[account]);
         return (borFee, btokenFee);
     }
 
     function getTotalFee() public view returns(uint, uint) {
-        return (bor().balanceOf(address(this)), btoken().balanceOf(address(this)));
+        return (bor().balanceOf(address(this)), otoken().balanceOf(address(this)));
     }
 
     function notifyBORFeeAmount(uint amount) external override onlyTunnel {
@@ -84,17 +84,17 @@ contract FeePool is ReentrancyGuard, IFeePool{
 
     function notifyBTokenFeeAmount(uint amount) external override onlyTunnel {
 
-        bTokenFeePerTokenStored = bTokenFeePerTokenStored.add(amount.divideDecimal(ptoken().totalSupply()));
+        oTokenFeePerTokenStored = oTokenFeePerTokenStored.add(amount.divideDecimal(ptoken().totalSupply()));
     }
 
     function notifyPTokenAmount(address account, uint amount) external override onlyTunnel {
         // first update account rewards
-        (uint earnedBOR, uint earnedBToken) = earned(account);
+        (uint earnedBOR, uint earnedOToken) = earned(account);
         userBORFee[account] = earnedBOR; 
-        userBTokenFee[account] = earnedBToken; 
+        userOTokenFee[account] = earnedOToken; 
 
         userBORFeePaid[account] = borFeePerTokenStored;
-        userBTokenFeePaid[account] = bTokenFeePerTokenStored;
+        userOTokenFeePaid[account] = oTokenFeePerTokenStored;
 
         _balances[account] = _balances[account].add(amount);
     }
@@ -109,15 +109,15 @@ contract FeePool is ReentrancyGuard, IFeePool{
     }
 
     function _claimFee(address account) internal {
-        (uint earnedBOR, uint earnedBToken) = earned(account);
+        (uint earnedBOR, uint earnedOToken) = earned(account);
         userBORFee[account] = 0;
         userBORFeePaid[account] = borFeePerTokenStored;
 
-        userBTokenFee[account] = 0;
-        userBTokenFeePaid[account] = bTokenFeePerTokenStored;
+        userOTokenFee[account] = 0;
+        userOTokenFeePaid[account] = oTokenFeePerTokenStored;
         
         bor().transfer(account, earnedBOR);
-        btoken().transfer(account, earnedBToken);
+        otoken().transfer(account, earnedOToken);
 
     }
 

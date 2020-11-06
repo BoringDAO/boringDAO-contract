@@ -43,7 +43,8 @@ contract SatellitePoolFactory is Ownable{
         return tvl;
     }
 
-    function deploy(address stakingToken, address _liquidator, address _oracle, bytes32 _sts) public onlyOwner {
+    function deploy(address stakingToken, address _liquidator, 
+    address _oracle, bytes32 _sts, uint256 _lockDuration, uint256 _unlockPercent, uint256 _lockPercent) public onlyOwner {
 
         require(
             poolByStakingToken[stakingToken] == address(0),
@@ -57,7 +58,10 @@ contract SatellitePoolFactory is Ownable{
                 rewardsToken,
                 stakingToken,
                 _oracle,
-                _sts
+                _sts,
+                _lockDuration,
+                _unlockPercent,
+                _lockPercent
             )
         );
         stakingTokens.push(stakingToken);

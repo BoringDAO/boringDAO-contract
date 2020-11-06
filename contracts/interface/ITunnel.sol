@@ -9,5 +9,5 @@ interface ITunnel {
     function burn(address account, uint amount, string memory assetAddress) external;
     function totalValuePledge() external view  returns(uint);
     function canIssueAmount() external view returns(uint);
-    function bTokenKey() external view returns(bytes32);
+    function oTokenKey() external view returns(bytes32);
 }

@@ -4,10 +4,10 @@ const PPToken = artifacts.require("PPToken");
 const Tunnel = artifacts.require("Tunnel");
 const AddressResolver = artifacts.require("AddressResolver");
 const AddressBook = artifacts.require("AddressBook")
-const BTokenSnapshot = artifacts.require("BTokenSnapshot");
+const OToken = artifacts.require("OToken");
 const Oracle = artifacts.require("Oracle");
 const FeePool = artifacts.require("FeePool");
-const StakingRewardsFactory = artifacts.require("StakingRewardsFactory");
+const StakingRewardsLockFactory = artifacts.require("StakingRewardsLockFactory");
 const Web3Utils = require('web3-utils');
 
 
@@ -77,7 +77,7 @@ contract("BoringDAO mint/burn", async (accounts) => {
         ppToken = await PPToken.deployed();
         tunnel = await Tunnel.deployed();
         addrBook = await AddressBook.deployed();
-        btoken = await BTokenSnapshot.deployed();
+        btoken = await OToken.deployed();
         // oracle = await Oracle.deployed();
         feePool = await FeePool.deployed();
         // satellitePoolFactory = await StakingRewardsFactory.deployed();

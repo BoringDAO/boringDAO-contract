@@ -15,6 +15,7 @@ contract TimeDistribution is Ownable {
     using Math for uint256;
 
     IERC20 public token;
+    address public distributor;
 
     struct DistributionInfo {
         uint256 amount;
@@ -26,18 +27,21 @@ contract TimeDistribution is Ownable {
 
     mapping(address => DistributionInfo) infos;
 
-    constructor(IERC20 _token) public {
+    constructor(IERC20 _token, address _distributor) public {
         token = _token;
+        distributor = _distributor;
     }
 
     function userTotalToken() public view returns (uint256) {
-        DistributionInfo storage info = infos[msg.sender];
-        return info.amount;
+        return infos[msg.sender].amount;
     }
 
     function claimed() public view returns (uint256) {
-        DistributionInfo storage info = infos[msg.sender];
-        return info.claimedAmount;
+        return infos[msg.sender].claimedAmount;
+    }
+
+    function setDistributor(address _distributor) public onlyOwner {
+        distributor = _distributor;
     }
 
     function addInfo(
@@ -46,14 +50,14 @@ contract TimeDistribution is Ownable {
         uint256 beginTs,
         uint256 endTs
     ) public onlyOwner {
-        require(amount != 0, "TimeDistribution::addInfo amount should not 0");
+        require(amount != 0, "TimeDistribution::addInfo: amount should not 0");
         require(
             beginTs >= block.timestamp,
-            "TimeDistribution::distribution begin too early"
+            "TimeDistribution::addInfo: begin too early"
         );
         require(
             endTs >= block.timestamp,
-            "TimeDistribution::distribution end too early"
+            "TimeDistribution::addInfo: end too early"
         );
         infos[account] = DistributionInfo(
             amount,
@@ -63,6 +67,16 @@ contract TimeDistribution is Ownable {
             endTs.sub(beginTs)
         );
         emit AddInfo(account, amount, beginTs, endTs);
+    }
+
+    // careful gas
+    function addMultiInfo(address[] memory accounts, uint256[] memory amounts, uint256[] memory beginTsArray, uint256[] memory endTsArray) public onlyOwner {
+        require(accounts.length == amounts.length, "TimeDistribution::addMultiInfo:function params length not equal");
+        require(accounts.length == beginTsArray.length, "TimeDistribution::addMultiInfo:function params length not equal");
+        require(accounts.length == endTsArray.length, "TimeDistribution::addMultiInfo:function params length not equal");
+        for(uint256 i=0; i < accounts.length; i++) {
+            addInfo(accounts[i], amounts[i], beginTsArray[i], endTsArray[i]);
+        }
     }
 
     function pendingClaim() public view returns (uint256) {
@@ -81,7 +95,7 @@ contract TimeDistribution is Ownable {
         uint256 claimAmount = pendingClaim();
         DistributionInfo storage info = infos[msg.sender];
         info.claimedAmount = info.claimedAmount.add(claimAmount);
-        token.transfer(msg.sender, claimAmount);
+        token.transferFrom(distributor, msg.sender, claimAmount);
         emit ClaimToken(msg.sender, claimAmount);
     }
 

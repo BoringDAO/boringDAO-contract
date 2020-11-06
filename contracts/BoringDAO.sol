@@ -12,7 +12,6 @@ import "./ParamBook.sol";
 import "./lib/SafeDecimalMath.sol";
 import "./interface/IMintProposal.sol";
 import "./interface/IOracle.sol";
-import "./interface/ICap.sol";
 import "./interface/ITrusteeFeePool.sol";
 
 /**
@@ -33,11 +32,10 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
     bytes32 public constant PARAM_BOOK = "ParamBook";
     bytes32 public constant MINT_PROPOSAL = "MintProposal";
     bytes32 public constant ORACLE = "Oracle";
-    bytes32 public constant ADDRESS_BOOK = "AddressBook";
     bytes32 public constant TRUSTEE_FEE_POOL = "TrusteeFeePool";
 
-    bytes32 public constant TUNNEL_MINT_FEE_RATE = "mint fee";
-    bytes32 public constant NETWORK_FEE = "networkFee";
+    bytes32 public constant TUNNEL_MINT_FEE_RATE = "mint_fee";
+    bytes32 public constant NETWORK_FEE = "network_fee";
 
     IAddressResolver public addrReso;
 
@@ -67,10 +65,6 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
 
     function borERC20() internal view returns (IERC20) {
         return IERC20(addrReso.key2address(BOR));
-    }
-
-    function borCap() internal view returns (ICap) {
-        return ICap(addrReso.key2address(BOR));
     }
 
     function paramBook() internal view returns (ParamBook) {
@@ -132,6 +126,10 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
 
     function setMine(address _mine) public onlyAdmin {
         mine = _mine;
+    }
+
+    function setMintCap(uint256 amount) public onlyAdmin {
+        mintCap = amount;
     }
 
     /**
@@ -204,7 +202,7 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
             return;
         }
         uint256 canIssueAmount = tunnel(_tunnelKey).canIssueAmount();
-        bytes32 bTokenSymbolKey = tunnel(_tunnelKey).bTokenKey();
+        bytes32 bTokenSymbolKey = tunnel(_tunnelKey).oTokenKey();
         if (_amount.add(btoken(bTokenSymbolKey).totalSupply()) > canIssueAmount) {
             emit NotEnoughPledgeValue(
                 _tunnelKey,
@@ -224,7 +222,7 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
             amountByMint = amountByMint.add(borMintAmount);
             borERC20().transferFrom(mine, to, borMintAmount);
         }
-        emit ApproveMintSuccess(_tunnelKey, _txid, _amount, to);
+        emit ApproveMintSuccess(_tunnelKey, _txid, _amount, to, assetAddress);
     }
 
     function calculateMintBORAmount(bytes32 _tunnelKey, uint _amount) public view returns (uint) {
@@ -302,7 +300,8 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
         bytes32 _tunnelKey,
         string _txid,
         uint256 _amount,
-        address to
+        address to,
+        string assetAddress
     );
 }
 

@@ -8,7 +8,7 @@ const InsurancePool = artifacts.require("InsurancePool");
 const MintProposal = artifacts.require("MintProposal")
 const Bor = artifacts.require("Bor");
 const Tunnel = artifacts.require("Tunnel");
-const BTokenSnapshot = artifacts.require("BTokenSnapshot");
+const OToken = artifacts.require("OToken");
 const PPToken = artifacts.require("PPToken");
 
 const {trusteesAddress, btcMultiSignAddress} = require("../trustee.json");
@@ -42,11 +42,11 @@ module.exports = async (deployer, network, accounts) => {
   const mintProposal = await MintProposal.deployed();
   const tunnel = await Tunnel.deployed();
   const bor = await Bor.deployed();
-  const bBTC = await BTokenSnapshot.deployed();
+  const oBTC = await OToken.deployed();
   const pptoken = await PPToken.deployed();
 
-  let keys = ['AddressBook', 'ParamBook', 'Oracle', 'FeePool', 'InsurancePool', 'BoringDAO', 'MintProposal', 'BTC', 'BOR', 'bBTC', "PPT-BTC", "DevUser"].map(toBytes32)
-  let addrs = [addrBook.address, pb.address, oracle.address, feePool.address, insurancePool.address, boringDAO.address, mintProposal.address, tunnel.address, bor.address, bBTC.address, pptoken.address, accounts[4]];
+  let keys = ['AddressBook', 'ParamBook', 'Oracle', 'FeePool', 'InsurancePool', 'BoringDAO', 'MintProposal', 'BTC', 'BOR', 'oBTC', "PPT-BTC", "DevUser"].map(toBytes32)
+  let addrs = [addrBook.address, pb.address, oracle.address, feePool.address, insurancePool.address, boringDAO.address, mintProposal.address, tunnel.address, bor.address, oBTC.address, pptoken.address, accounts[4]];
 
   await addrResolver.setMultiAddress(keys, addrs);
 
@@ -55,7 +55,7 @@ module.exports = async (deployer, network, accounts) => {
 
   // set fee rate
   let names1 = ['BTC', 'BTC', 'BTC', 'BTC', 'BTC', 'BTC', 'BTC', 'BTC', 'BTC'].map(toBytes32);
-  let names2 = ['mint fee', 'burn fee', 'mint fee trustee', 'mint fee pledger', 'mint fee dev', 'burn fee insurance', 'burn fee pledger', 'pledge rate', 'networkFee'].map(toBytes32)
+  let names2 = ['mint_fee', 'burn_fee', 'mint_fee_trustee', 'mint_fee_pledger', 'mint_fee_dev', 'burn_fee_insurance', 'burn_fee_pledger', 'pledge_rate', 'network_fee'].map(toBytes32)
   towei = (n) => Web3Utils.toWei(n) 
   let values = ['0.002', '0.002', '0.15', '0.7', '0.15', '0.5', '0.5', '0.75', '0.0008'].map(towei);
   await pb.setMultiParams2(names1, names2, values);

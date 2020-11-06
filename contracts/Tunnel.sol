@@ -24,24 +24,23 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     IAddressResolver addrResolver;
     bytes32 public constant BORINGDAO = "BoringDAO";
     // BTOKEN_BTC
-    bytes32 public override bTokenKey;
+    bytes32 public override oTokenKey;
     bytes32 public tunnelKey;
-    bytes32 public constant MINT_FEE = "mint fee";
-    bytes32 public constant BURN_FEE = "burn fee";
-    bytes32 public constant MINT_FEE_TRUSTEE = "mint fee trustee";
-    bytes32 public constant MINT_FEE_PLEDGER = "mint fee pledger";
-    bytes32 public constant MINT_FEE_DEV = "mint fee dev";
-    bytes32 public constant BURN_FEE_BURN = "burn fee burn";
-    bytes32 public constant BURN_FEE_INSURANCE = "burn fee insurance";
-    bytes32 public constant BURN_FEE_PLEDGER = "burn fee pledger";
+    bytes32 public constant MINT_FEE = "mint_fee";
+    bytes32 public constant BURN_FEE = "burn_fee";
+    bytes32 public constant MINT_FEE_TRUSTEE = "mint_fee_trustee";
+    bytes32 public constant MINT_FEE_PLEDGER = "mint_fee_pledger";
+    bytes32 public constant MINT_FEE_DEV = "mint_fee_dev";
+    bytes32 public constant BURN_FEE_INSURANCE = "burn_fee_insurance";
+    bytes32 public constant BURN_FEE_PLEDGER = "burn_fee_pledger";
     bytes32 public constant FEE_POOL = "FeePool";
     bytes32 public constant INSURANCE_POOL = "InsurancePool";
     bytes32 public constant DEV_ADDRESS = "DevUser";
     bytes32 public constant ADDRESS_BOOK = "AddressBook";
     bytes32 public constant ORACLE = "Oracle";
     bytes32 public constant BOR = "BOR";
-    bytes32 public constant PLEDGE_RATE = "pledge rate";
-    bytes32 public constant NETWORK_FEE = "networkFee";
+    bytes32 public constant PLEDGE_RATE = "pledge_rate";
+    bytes32 public constant NETWORK_FEE = "network_fee";
     bytes32 public constant PLEDGE_TOKEN = "PPT-BTC";
     bytes32 public constant PARAM_BOOK = "ParamBook";
     bytes32 public constant TRUSTEE_FEE_POOL = "TrusteeFeePool";
@@ -67,26 +66,26 @@ contract Tunnel is Ownable, Pausable, ITunnel {
 
     constructor(
         IAddressResolver _addrResolver,
-        bytes32 _bTokenKey,
+        bytes32 _oTokenKey,
         bytes32 _tunnelKey
     ) public {
         addrResolver = _addrResolver;
-        bTokenKey = _bTokenKey;
+        oTokenKey = _oTokenKey;
         tunnelKey = _tunnelKey;
         _pause();
     }
 
     // view
-    function btokenMintBurn() internal view returns (IMintBurn) {
-        return IMintBurn(addrResolver.requireAndKey2Address(bTokenKey, "bToken contract not exist in Tunnel"));
+    function otokenMintBurn() internal view returns (IMintBurn) {
+        return IMintBurn(addrResolver.requireAndKey2Address(oTokenKey, "Tunnel::otokenMintBurn: oToken contract not exist in Tunnel"));
     }
 
-    function btokenERC20() internal view returns (IERC20) {
-        return IERC20(addrResolver.requireAndKey2Address(bTokenKey, "bToken contract not exist in Tunnel"));
+    function otokenERC20() internal view returns (IERC20) {
+        return IERC20(addrResolver.requireAndKey2Address(oTokenKey, "Tunnel::otokenERC20: oToken contract not exist in Tunnel"));
     }
 
     function borERC20() internal view returns (IERC20) {
-        return IERC20(addrResolver.requireAndKey2Address(BOR, "BOR contract not exist in Tunnel"));
+        return IERC20(addrResolver.requireAndKey2Address(BOR, "borERC20::borERC20: BOR contract not exist in Tunnel"));
     }
 
     function boringDAO() internal view returns (IBoringDAO) {
@@ -110,7 +109,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     }
 
     function trusteeFeePool() internal view returns (ITrusteeFeePool) {
-        return ITrusteeFeePool(addrResolver.requireAndKey2Address(TRUSTEE_FEE_POOL, "Tunnel::TrusteeFeePool is address(0)"));
+        return ITrusteeFeePool(addrResolver.requireAndKey2Address(TRUSTEE_FEE_POOL, "Tunnel::trusteeFeePool is address(0)"));
     }
 
     function paramBook() internal view returns (ParamBook) {
@@ -168,9 +167,9 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     {
         require(
             ppTokenERC20().balanceOf(account) >= amount,
-            "not enough pledge token"
+            "Tunnel::redeem: not enough pledge provider token"
         );
-        require(borPledgeInfo[account] >= amount, "Not enough bor amount");
+        require(borPledgeInfo[account] >= amount, "Tunnel:redeem: Not enough bor amount");
         borPledgeInfo[account] = borPledgeInfo[account].sub(amount);
         // send fee and burn ptoken
         // pledge token and fee
@@ -203,12 +202,12 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         uint256 mintFeeRation = getRate(MINT_FEE);
         uint256 mintFeeAmount = amount.multiplyDecimal(mintFeeRation);
         uint256 mintAmount = amount.sub(mintFeeAmount).sub(networkFee);
-        btokenMintBurn().mint(account, mintAmount);
+        otokenMintBurn().mint(account, mintAmount);
         // handle fee
         // trustee fee
         uint256 mintFeeTrusteeRatio = getRate(MINT_FEE_TRUSTEE);
         uint256 mintFeeTrusteeAmount = mintFeeAmount.multiplyDecimal(mintFeeTrusteeRatio).add(networkFee);
-        btokenMintBurn().mint(address(trusteeFeePool()), mintFeeTrusteeAmount);
+        otokenMintBurn().mint(address(trusteeFeePool()), mintFeeTrusteeAmount);
         trusteeFeePool().notifyReward(mintFeeTrusteeAmount);
 
         // fee to pledger
@@ -217,7 +216,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
             mintFeePledgerRation
         );
         address feePoolAddress = address(feePool());
-        btokenMintBurn().mint(feePoolAddress, mintFeePledgerAmount);
+        otokenMintBurn().mint(feePoolAddress, mintFeePledgerAmount);
         feePool().notifyBTokenFeeAmount(mintFeePledgerAmount);
 
 
@@ -228,7 +227,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         );
         address devAddress = addrResolver.key2address(DEV_ADDRESS);
 
-        btokenMintBurn().mint(devAddress, mintFeeDevAmount);
+        otokenMintBurn().mint(devAddress, mintFeeDevAmount);
     }
 
 
@@ -260,9 +259,9 @@ contract Tunnel is Ownable, Pausable, ITunnel {
             burnFeeAmountPledger
         );
         feePool().notifyBORFeeAmount(burnFeeAmountPledger);
-        // btoken burn
-        btokenMintBurn().burn(account, amount);
-        emit BurnBToken(
+        // otoken burn
+        otokenMintBurn().burn(account, amount);
+        emit BurnOToken(
             account,
             amount,
             boringDAO().getRandomTrustee(),
@@ -278,7 +277,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     
     function pledgeRatio() public view returns(uint) {
         uint tvl = totalTVL();
-        uint btokenValue = btokenERC20().totalSupply().multiplyDecimal(oracle().getPrice(tunnelKey));
+        uint btokenValue = otokenERC20().totalSupply().multiplyDecimal(oracle().getPrice(tunnelKey));
         // todo
         if (btokenValue == 0) {
             return 0;
@@ -307,7 +306,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         _;
     }
 
-    event BurnBToken(
+    event BurnOToken(
         address indexed account,
         uint256 amount,
         address proposer,

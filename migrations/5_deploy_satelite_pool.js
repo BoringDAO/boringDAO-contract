@@ -1,9 +1,9 @@
 const AddressBook = artifacts.require("AddressBook");
 const AddressResolver = artifacts.require("AddressResolver");
-const BTokenSnapshot = artifacts.require("BTokenSnapshot");
+const OToken = artifacts.require("OToken");
 const Bor = artifacts.require("Bor");
 const PPToken = artifacts.require("PPToken");
-const StakingRewardsFactory = artifacts.require("StakingRewardsFactory");
+const StakingRewardsLockFactory = artifacts.require("StakingRewardsLockFactory");
 const SatellitePoolFactory = artifacts.require("SatellitePoolFactory");
 const Oracle = artifacts.require("Oracle");
 const MigratePool = artifacts.require("MigratePool");
@@ -29,14 +29,14 @@ module.exports = async (deployer, network, accounts) => {
     //     dai = "0x";
     // }
 
-    const bBTC = await BTokenSnapshot.deployed();
+    const oBTC = await OToken.deployed();
     const bor = await Bor.deployed();
     const ppToken = await PPToken.deployed();
     const addrResolver = await AddressResolver.deployed();
 
     const oracle = await Oracle.deployed();
 
-    // await deployer.deploy(StakingRewardsFactory, bor.address, Math.floor(Date.now() / 1000)+60);
+    // await deployer.deploy(StakingRewardsLockFactory, bor.address, Math.floor(Date.now() / 1000)+60);
     // const srf = await StakingRewardsFactory.deployed();
     // await new Promise(r => setTimeout(r, 60000));
     
@@ -47,7 +47,7 @@ module.exports = async (deployer, network, accounts) => {
     // await addrResolver.setAddress(toBytes32("PoolFactory"), srf.address);
     await addrResolver.setAddress(toBytes32("BTCSatellitePoolFactory"), spf.address);    
 
-    // await srf.deploy(bBTC.address);
+    // await srf.deploy(oBTC.address);
     // await srf.deploy(pToken.address);
 
     // await spf.deploy(weth.address, accounts[0], oracle.address, toBytes32("FWETH"));
@@ -56,7 +56,7 @@ module.exports = async (deployer, network, accounts) => {
 
     // // // deploy
     // await bor.transfer(srf.address, Web3Utils.toWei("2000"));
-    // await srf.notifyRewardAmount(bBTC.address, 24*60*60, Web3Utils.toWei("1000"));
+    // await srf.notifyRewardAmount(oBTC.address, 24*60*60, Web3Utils.toWei("1000"));
     // await srf.notifyRewardAmount(pToken.address, 24*60*60, Web3Utils.toWei("1000"));
 
     // await bor.transfer(spf.address, Web3Utils.toWei("3000"));

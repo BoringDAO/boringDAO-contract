@@ -20,7 +20,7 @@ contract Liquidation is AccessControl {
 
     bytes32 public constant TRUSTEE_ROLE = "TRUSTEE_ROLE";
     bytes32 public constant BORING_DAO = "BoringDAO";
-    bytes32 public constant BBTC = "bBTC";
+    bytes32 public constant OBTC = "oBTC";
     address public coreDev;
 
     bool public shouldPauseDev;
@@ -41,8 +41,8 @@ contract Liquidation is AccessControl {
         return IPause(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::boringDAO contract not exist"));
     }
 
-    function btoken() internal view returns (IPause) {
-        return IPause(addressReso.requireAndKey2Address(BBTC, "Liquidation::bBTC contract not exist"));
+    function otoken() internal view returns (IPause) {
+        return IPause(addressReso.requireAndKey2Address(OBTC, "Liquidation::bBTC contract not exist"));
     }
 
     // will pause the system
@@ -60,7 +60,7 @@ contract Liquidation is AccessControl {
     }
 
     function unpause() public onlyPauser {
-        require(systemPause == true, "liquidation::should paused when call unpause()");
+        require(systemPause == true, "liquidation::unpause:should paused when call unpause()");
         if (msg.sender == coreDev) {
             shouldPauseDev = false;
         } else {
@@ -77,10 +77,11 @@ contract Liquidation is AccessControl {
     }
 
     function withdraw(address target) public onlyPauser {
-        uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::boringDAO contract not exist")).getRoleMemberCount(TRUSTEE_ROLE);
+        uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::withdraw: boringDAO contract not exist")).getRoleMemberCount(TRUSTEE_ROLE);
         uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(1);
-        require(confirmWithdrawAmount >= threshold, "Liquidation:: not enough trustee confirm withdraw");
-        ILiquidate(target).liquidate();
+        if (confirmWithdrawAmount >= threshold) {
+            ILiquidate(target).liquidate();
+        }
     }
 
 

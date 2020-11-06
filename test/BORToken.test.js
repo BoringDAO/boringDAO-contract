@@ -1,4 +1,3 @@
-const BORToken = artifacts.require("BORToken");
 const Bor = artifacts.require("Bor");
 
 const { assert } = require('chai');
@@ -21,7 +20,7 @@ contract("Bor", async (accounts) => {
     it("should delegate ok", async () => {
         await bor.delegate(accounts[1]);
         const votes = await bor.getCurrentVotes(accounts[1]);
-        assert.equal(fromWei(votes), "186668");
+        assert.equal(fromWei(votes), "182668");
     });
 
 
@@ -30,7 +29,7 @@ contract("Bor", async (accounts) => {
         await bor.transfer(accounts[2], toWei("3001"));
         await bor.transfer(accounts[2], toWei("3001"));
         const votes = await bor.getCurrentVotes(accounts[1]);
-        assert.equal(fromWei(votes), "177665");
+        assert.equal(fromWei(votes), "173665");
     });
 
     it("approve gas", async () => {

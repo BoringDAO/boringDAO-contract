@@ -5,8 +5,7 @@ const InsurancePool = artifacts.require("InsurancePool");
 const MintProposal = artifacts.require("MintProposal");
 const BoringDAO =artifacts.require("BoringDAO");
 const Tunnel = artifacts.require("Tunnel");
-// const BToken = artifacts.require("BToken");
-const BTokenSnapshot = artifacts.require("BTokenSnapshot");
+const OToken = artifacts.require("OToken");
 const PPToken = artifacts.require("PPToken");
 const Bor = artifacts.require("Bor");
 const {trusteesAddress, btcMultiSignAddress} = require("../trustee.json");
@@ -29,7 +28,7 @@ module.exports = async (deployer, network, accounts) => {
     await deployer.deploy(AddressResolver);
     const addrResolver = await AddressResolver.deployed();
 
-    await deployer.deploy(FeePool, addrResolver.address, toBytes32("BTC"), toBytes32("bBTC"), toBytes32("PPT-BTC"));
+    await deployer.deploy(FeePool, addrResolver.address, toBytes32("BTC"), toBytes32("oBTC"), toBytes32("PPT-BTC"));
 
     await deployer.deploy(TrusteeFeePool, bor.address);
 
@@ -43,23 +42,17 @@ module.exports = async (deployer, network, accounts) => {
     const boringDAO = await BoringDAO.deployed();
 
     // tunnel
-    await deployer.deploy(Tunnel, addrResolver.address, toBytes32("bBTC"), toBytes32("BTC"));
+    await deployer.deploy(Tunnel, addrResolver.address, toBytes32("oBTC"), toBytes32("BTC"));
     const tunnel = await Tunnel.deployed();
 
-    // BToken
-    // await deployer.deploy(BToken, "Boring BTC", "bBTC", toBytes32("BTC"), addrResolver.address);
-    // const bBTC = await BToken.deployed();
-    // await bBTC.grantRole(toBytes32("MINTER_ROLE"), tunnel.address);
-    // await bBTC.grantRole(toBytes32("BURNER_ROLE"), tunnel.address);
-
-    // BTokenSnapshot
-    await deployer.deploy(BTokenSnapshot, "Boring BTC", "bBTC", 18, accounts[0]);
-    const bBTC = await BTokenSnapshot.deployed();
-    await bBTC.grantRole(toBytes32("MINTER_ROLE"), tunnel.address);
-    await bBTC.grantRole(toBytes32("BURNER_ROLE"), tunnel.address);
+    // OToken
+    await deployer.deploy(OToken, "BoringDAO BTC", "oBTC", 18, accounts[0]);
+    const oBTC = await OToken.deployed();
+    await oBTC.grantRole(toBytes32("MINTER_ROLE"), tunnel.address);
+    await oBTC.grantRole(toBytes32("BURNER_ROLE"), tunnel.address);
 
     // PPToken
-    await deployer.deploy(PPToken, "Pledge Provider Token", "PPT-BTC", 18, accounts[0]);
+    await deployer.deploy(PPToken, "Pledge Provider Token BTC", "PPT-BTC", 18, accounts[0]);
     const pptoken = await PPToken.deployed()
     await pptoken.grantRole(toBytes32("MINTER_ROLE"), tunnel.address);
     await pptoken.grantRole(toBytes32("BURNER_ROLE"), tunnel.address);
