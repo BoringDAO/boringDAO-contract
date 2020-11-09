@@ -46,6 +46,11 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
 
     address public mine;
 
+    // The user may not provide the Ethereum address or the format of the Ethereum address is wrong when mint. 
+    // this is for a transaction
+    mapping(string=>bool) public approveFlag;
+
+
     constructor(IAddressResolver _addrReso, uint _mintCap, address _mine) public {
         // set up resolver
         addrReso = _addrReso;
@@ -188,6 +193,13 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
         address to,
         string memory assetAddress
     ) public override whenNotPaused whenTunnelNotPause(_tunnelKey) onlyTrustee {
+        if(to == address(0)) {
+            if (approveFlag[_txid] == false) {
+                approveFlag[_txid] = true;
+                emit ETHAddressNotExist(_tunnelKey, _txid, _amount, to, msg.sender, assetAddress);
+            }
+            return;
+        }
         
         uint256 trusteeCount = getRoleMemberCount(TRUSTEE_ROLE);
         bool shouldMint = mintProposal().approve(
@@ -226,7 +238,7 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
     }
 
     function calculateMintBORAmount(bytes32 _tunnelKey, uint _amount) public view returns (uint) {
-        if (amountByMint >= mintCap) {
+        if (amountByMint >= mintCap || _amount == 0) {
             return 0;
         }
         uint256 assetPrice = oracle().getPrice(_tunnelKey);
@@ -303,6 +315,17 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
         address to,
         string assetAddress
     );
+
+    event ETHAddressNotExist(
+        bytes32 _tunnelKey,
+        string _txid,
+        uint256 _amount,
+        address to,
+        address trustee,
+        string assetAddress
+    );
+
+   
 }
 
 interface IPaused {

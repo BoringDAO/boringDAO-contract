@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -50,17 +51,20 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     // total pledge value in one token
     uint256 public totalPledgeBOR;
 
+    // burn mini limit
+    uint256 public burnMiniLimit=1e15;
+    uint256 public redeemLockTxLimit=5;
+
     struct PledgerInfo {
         uint256 amount;
         uint256 feeDebt;
     }
 
-    struct RedeemUnlock {
+    struct LockAmount{
         uint unlockTime;
         uint amount;
     }
-    mapping(address=>RedeemUnlock[]) public unlockInfo;
-    mapping(address=>uint256) public unlockNonce;
+    mapping(address=>LockAmount[]) public lockInfo;
 
     uint256 public lockDuration = 86400;
 
@@ -129,23 +133,36 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         return totalPledgeBOR.multiplyDecimal(borPrice);
     }
 
-    function currentUnlock() public view returns(uint256, uint256) {
-        uint current;
-        uint newNonce;
-        for (uint i=unlockNonce[msg.sender]; i<unlockInfo[msg.sender].length; i++) {
-            if(block.timestamp >= unlockInfo[msg.sender][i].unlockTime) {
-                current = current.add(unlockInfo[msg.sender][i].amount);
+    function userLockLength(address account) public view returns (uint) {
+        return lockInfo[account].length;
+    }
+
+    function userLockAmount() public view returns(uint256, uint256) {
+        uint lock;
+        uint unlock;
+        for (uint i=0; i<lockInfo[msg.sender].length; i++) {
+            if(block.timestamp >= lockInfo[msg.sender][i].unlockTime) {
+                unlock = unlock.add(lockInfo[msg.sender][i].amount);
             } else {
-                newNonce = i;
-                break;
+                lock = lock.add(lockInfo[msg.sender][i].amount);
             }
         }
-        return (current, newNonce);
+        return (lock, unlock);
     }
+
+    // todo
 
     // duration should bigger than lockDuration
     function setLockDuration(uint duration) public onlyOwner {
         lockDuration = duration;
+    }
+
+    function setRedeemLockTxLimit(uint limit) public onlyOwner {
+            redeemLockTxLimit = limit;
+    }
+
+    function setBurnMiniLimit(uint amount) public onlyOwner {
+        burnMiniLimit = amount;
     }
 
     function pledge(address account, uint256 amount)
@@ -158,6 +175,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         // mint pledge token
         ppTokenMintBurn().mint(account, amount);
         feePool().notifyPTokenAmount(account, amount);
+        emit PledgeSuccess(account, amount);
     }
 
     function redeem(address account, uint256 amount)
@@ -170,6 +188,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
             "Tunnel::redeem: not enough pledge provider token"
         );
         require(borPledgeInfo[account] >= amount, "Tunnel:redeem: Not enough bor amount");
+        require(lockInfo[account].length <= redeemLockTxLimit, "Tunnel::redeem: A user can only redeem at most five redeem, try again after extraction");
         borPledgeInfo[account] = borPledgeInfo[account].sub(amount);
         // send fee and burn ptoken
         // pledge token and fee
@@ -177,18 +196,35 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         lock(account, amount, block.timestamp.add(lockDuration));
         ppTokenMintBurn().burn(account, amount);
         feePool().withdraw(account, amount);
+        emit RedeemSuccess(account, amount);
     }
 
     function lock(address account, uint amount, uint unlockTime) internal {
-        unlockInfo[account].push(RedeemUnlock(unlockTime, amount));
+        lockInfo[account].push(LockAmount(unlockTime, amount));
     }
 
-    function unlockPledgeBOR() public {
-        (uint amount, uint n) = currentUnlock();
-        unlockNonce[msg.sender] = n;
-        totalPledgeBOR = totalPledgeBOR.sub(amount);
-        borERC20().transfer(msg.sender, amount);
+    function withdrawUnlock() public {
+        uint unlock;
+        uint  i = 0;
+        while (i!=lockInfo[msg.sender].length) {
+            if (block.timestamp >= lockInfo[msg.sender][i].unlockTime) {
+                unlock = unlock.add(lockInfo[msg.sender][i].amount);
+                lockInfo[msg.sender][i] = lockInfo[msg.sender][lockInfo[msg.sender].length.sub(1)];
+                lockInfo[msg.sender].pop();
+            } else {
+                i++;
+            }
+        }
+        if (unlock > 0 ) {
+            totalPledgeBOR = totalPledgeBOR.sub(unlock);
+            borERC20().transfer(msg.sender, unlock);
+            emit WithdrawUnlockSuccess(
+                msg.sender,
+                unlock
+            );
+        }
     }
+
 
     // when approved then issue
     function issue(address account, uint256 amount)
@@ -232,6 +268,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
 
 
     function burn(address account, uint256 amount, string memory assetAddress) external override onlyBoringDAO{
+        require(amount>=burnMiniLimit, "Tunnel::burn: the amount too small");
         uint256 burnFeeAmountBToken = amount.multiplyDecimal(getRate(BURN_FEE));
         // convert to bor amount
         uint burnFeeAmount = oracle().getPrice(tunnelKey).multiplyDecimal(burnFeeAmountBToken).divideDecimal(oracle().getPrice(BOR));
@@ -311,5 +348,20 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         uint256 amount,
         address proposer,
         string assetAddress
+    );
+
+    event WithdrawUnlockSuccess(
+        address account,
+        uint    amount
+    );
+
+     event PledgeSuccess(
+         address account,
+         uint   amount
+     );
+
+    event RedeemSuccess(
+        address account,
+        uint amount
     );
 }

@@ -50,6 +50,7 @@ contract TimeDistribution is Ownable {
         uint256 beginTs,
         uint256 endTs
     ) public onlyOwner {
+        require(infos[account].amount == 0, "Timedistribution::account is not a new user");
         require(amount != 0, "TimeDistribution::addInfo: amount should not 0");
         require(
             beginTs >= block.timestamp,
@@ -99,12 +100,12 @@ contract TimeDistribution is Ownable {
         emit ClaimToken(msg.sender, claimAmount);
     }
 
-    function changeUser(address newUser) public {
-        require(infos[newUser].amount == 0, "Timedistribution::newUser is not a new user");
-        infos[newUser] = infos[msg.sender];
-        delete infos[msg.sender];
-        emit UserChanged(msg.sender, newUser);
-    }
+    // function changeUser(address newUser) public {
+    //     require(infos[newUser].amount == 0, "Timedistribution::newUser is not a new user");
+    //     infos[newUser] = infos[msg.sender];
+    //     delete infos[msg.sender];
+    //     emit UserChanged(msg.sender, newUser);
+    // }
 
     function changeUserAdmin(address oldUser, address newUser) public onlyOwner {
         require(infos[newUser].amount == 0, "Timedistribution::newUser is not a new user");
