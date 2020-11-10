@@ -1,4 +1,5 @@
 const AddressResolver = artifacts.require("AddressResolver");
+const Liquidation = artifacts.require("Liquidation");
 const FeePool = artifacts.require("FeePool");
 const TrusteeFeePool = artifacts.require("TrusteeFeePool");
 const InsurancePool = artifacts.require("InsurancePool");
@@ -27,6 +28,9 @@ module.exports = async (deployer, network, accounts) => {
     
     await deployer.deploy(AddressResolver);
     const addrResolver = await AddressResolver.deployed();
+
+    await deployer.deploy(Liquidation, accounts[1], addrResolver.address);
+    const liqui = await Liquidation.deployed();
 
     await deployer.deploy(FeePool, addrResolver.address, toBytes32("BTC"), toBytes32("oBTC"), toBytes32("PPT-BTC"));
 

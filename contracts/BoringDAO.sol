@@ -174,6 +174,7 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
     function burnBToken(bytes32 _tunnelKey, uint256 amount, string memory assetAddress)
         public
         override
+        whenNotPaused
         whenContractExist(_tunnelKey)
         whenTunnelNotPause(_tunnelKey)
     {

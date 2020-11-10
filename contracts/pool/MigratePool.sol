@@ -36,6 +36,10 @@ contract MigratePool is Ownable{
         emit MigrateToken(msg.sender, amount, issueAmount, feeRate);
     }
 
+    function getAmount(uint amount) public view returns(uint) {
+        return amount.mul(decimalDiff).multiplyDecimal(feeRate);
+    }
+
     function modifyFeeRate(uint _feeRate) public onlyOwner {
         feeRate = _feeRate;
     }

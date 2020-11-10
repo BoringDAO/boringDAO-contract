@@ -3,5 +3,5 @@
 pragma solidity ^0.6.12;
 
 interface ILiquidate {
-    function liquidate() external;
+    function liquidate(address account) external;
 }

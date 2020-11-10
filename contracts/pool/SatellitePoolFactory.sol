@@ -16,7 +16,7 @@ contract SatellitePoolFactory is Ownable{
     uint256 public stakingRewardsGenesis;
 
     address[] public stakingTokens;
-    mapping(address => address) poolByStakingToken;
+    mapping(address => address) public poolByStakingToken;
 
 
     constructor(address _rewardsToken, uint256 _stakingRewardsGenesis)
@@ -25,7 +25,7 @@ contract SatellitePoolFactory is Ownable{
     {
         require(
             _stakingRewardsGenesis >= block.timestamp,
-            "StakingRewardsFactory::constructor: genesis too soon"
+            "SatellitePoolFactory::constructor: genesis too soon"
         );
 
         rewardsToken = _rewardsToken;
@@ -43,17 +43,17 @@ contract SatellitePoolFactory is Ownable{
         return tvl;
     }
 
-    function deploy(address stakingToken, address _liquidator, 
+    function deploy(address stakingToken, address _liquidation, 
     address _oracle, bytes32 _sts, uint256 _lockDuration, uint256 _unlockPercent, uint256 _lockPercent) public onlyOwner {
 
         require(
             poolByStakingToken[stakingToken] == address(0),
-            "StakingRewardsFactory::deploy: already deployed"
+            "SatellitePoolFactory::deploy: already deployed"
         );
 
         poolByStakingToken[stakingToken] = address(
             new SatellitePool(
-                _liquidator,
+                _liquidation,
                 address(this),
                 rewardsToken,
                 stakingToken,
@@ -74,16 +74,16 @@ contract SatellitePoolFactory is Ownable{
     ) public onlyOwner {
         require(
             block.timestamp >= stakingRewardsGenesis,
-            "StakingRewardsFactory::notifyRewardAmount: not ready"
+            "SatellitePoolFactory::notifyRewardAmount: not ready"
         );
         require(
             poolByStakingToken[stakingToken] != address(0),
-            "StakingRewardsFactory::notifyRewardAmount: not deployed"
+            "SatellitePoolFactory::notifyRewardAmount: not deployed"
         );
 
         require(
             IERC20(rewardsToken).transfer(poolByStakingToken[stakingToken], rewardAmount),
-            "StakingRewardsFactory::notifyRewardAmount: transfer failed"
+            "SatellitePoolFactory::notifyRewardAmount: transfer failed"
         );
         StakingRewardsLock(poolByStakingToken[stakingToken]).notifyRewardAmount(
             rewardAmount,

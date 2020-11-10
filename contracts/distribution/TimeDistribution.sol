@@ -25,7 +25,7 @@ contract TimeDistribution is Ownable {
         uint256 duration;
     }
 
-    mapping(address => DistributionInfo) infos;
+    mapping(address => DistributionInfo) public infos;
 
     constructor(IERC20 _token, address _distributor) public {
         token = _token;

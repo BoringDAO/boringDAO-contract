@@ -77,7 +77,6 @@ contract MintProposal is IMintProposal {
         uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(1);
         if (p.voteCount >= threshold) {
             p.finished = true;
-            emit VoteMintProposal(_tunnelKey, _txid, _amount, to, trustee, p.voteCount, trusteeCount);
             return true;
         } else {
             return false;

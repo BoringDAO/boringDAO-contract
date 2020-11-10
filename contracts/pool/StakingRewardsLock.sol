@@ -125,7 +125,7 @@ contract StakingRewardsLock is IStakingRewards, RewardsDistributionRecipient, Re
         emit Staked(msg.sender, amount);
     }
 
-    function withdraw(uint256 amount) public override nonReentrant updateReward(msg.sender) {
+    function withdraw(uint256 amount) public override virtual nonReentrant updateReward(msg.sender) {
         require(amount > 0, "Cannot withdraw 0");
         _totalSupply = _totalSupply.sub(amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);

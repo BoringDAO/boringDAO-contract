@@ -1,5 +1,6 @@
 const AddressBook = artifacts.require("AddressBook");
 const AddressResolver = artifacts.require("AddressResolver");
+const Liquidation = artifacts.require("Liquidation");
 const OToken = artifacts.require("OToken");
 const Bor = artifacts.require("Bor");
 const PPToken = artifacts.require("PPToken");
@@ -19,15 +20,18 @@ const toBytes32 = key => Web3Utils.rightPad(Web3Utils.asciiToHex(key), 64)
 module.exports = async (deployer, network, accounts) => {
 
     let weth, usdc, dai;
-    // if (network !== "main") {
-    //      weth = await FakeWETH.deployed();
-    //      usdc = await FakeUSDC.deployed();
-    //      dai = await FakeDAI.deployed();
-    // } else {
-    //     weth = "0x";
-    //     usdc = "0x";
-    //     dai = "0x";
-    // }
+    if (network !== "main") {
+        await deployer.deploy(FakeWETH, "WETH", "FWETH")
+         weth = await FakeWETH.deployed();
+        await deployer.deploy(FakeUSDC, "USDC", "FUSDC")
+         usdc = await FakeUSDC.deployed();
+        await deployer.deploy(FakeDAI, "DAI", "FDAI");
+         dai = await FakeDAI.deployed();
+    } else {
+        weth = "0x";
+        usdc = "0x";
+        dai = "0x";
+    }
 
     const oBTC = await OToken.deployed();
     const bor = await Bor.deployed();
@@ -39,29 +43,39 @@ module.exports = async (deployer, network, accounts) => {
     // await deployer.deploy(StakingRewardsLockFactory, bor.address, Math.floor(Date.now() / 1000)+60);
     // const srf = await StakingRewardsFactory.deployed();
     // await new Promise(r => setTimeout(r, 60000));
-    
-    await deployer.deploy(SatellitePoolFactory, bor.address, Math.floor(Date.now() / 1000)+600)
+   let geneTs = Math.floor(Date.now() / 1000)+40;
+    console.log("genTs", geneTs);
+    await deployer.deploy(SatellitePoolFactory, bor.address, geneTs)
     const spf = await SatellitePoolFactory.deployed();
-    // await new Promise(r => setTimeout(r, 60000));
+    await new Promise(r => setTimeout(r, 50000));
 
     // await addrResolver.setAddress(toBytes32("PoolFactory"), srf.address);
     await addrResolver.setAddress(toBytes32("BTCSatellitePoolFactory"), spf.address);    
 
     // await srf.deploy(oBTC.address);
     // await srf.deploy(pToken.address);
+    let liqui = await Liquidation.deployed()
 
-    // await spf.deploy(weth.address, accounts[0], oracle.address, toBytes32("FWETH"));
-    // await spf.deploy(usdc.address, accounts[0], oracle.address, toBytes32("FUSDC"));
-    // await spf.deploy(dai.address, accounts[0], oracle.address, toBytes32("FDAI"));
+    await spf.deploy(weth.address, liqui.address, oracle.address, toBytes32("FWETH"), 3600, 25, 75);
+    await spf.deploy(usdc.address, liqui.address, oracle.address, toBytes32("FUSDC"), 3600, 25, 75 );
+    await spf.deploy(dai.address, liqui.address, oracle.address, toBytes32("FDAI"), 3600, 25, 75);
 
     // // // deploy
     // await bor.transfer(srf.address, Web3Utils.toWei("2000"));
     // await srf.notifyRewardAmount(oBTC.address, 24*60*60, Web3Utils.toWei("1000"));
     // await srf.notifyRewardAmount(pToken.address, 24*60*60, Web3Utils.toWei("1000"));
 
-    // await bor.transfer(spf.address, Web3Utils.toWei("3000"));
-    // await spf.notifyRewardAmount(weth.address, 24*60*60, Web3Utils.toWei("1000"));
-    // await spf.notifyRewardAmount(usdc.address, 24*60*60, Web3Utils.toWei("1000"));
-    // await spf.notifyRewardAmount(dai.address, 24*60*60, Web3Utils.toWei("1000"));
+    await bor.transfer(spf.address, Web3Utils.toWei("3000"));
+    await spf.notifyRewardAmount(weth.address, 24*60*60, Web3Utils.toWei("1000"));
+    await spf.notifyRewardAmount(usdc.address, 24*60*60, Web3Utils.toWei("1000"));
+    await spf.notifyRewardAmount(dai.address, 24*60*60, Web3Utils.toWei("1000"));
+
+    let pool1 = await spf.poolByStakingToken(weth.address);
+    let pool2 = await spf.poolByStakingToken(usdc.address);
+    let pool3 = await spf.poolByStakingToken(dai.address);
+    console.log(network)
+    console.log("weth pool:", pool1);
+    console.log("usdc pool:", pool2);
+    console.log("dai pool:", pool3);
 
 }

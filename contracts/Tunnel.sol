@@ -17,8 +17,9 @@ import "./interface/IFeePool.sol";
 import "./interface/IStakingRewardsFactory.sol";
 import "./interface/IMintBurn.sol";
 import "./interface/ITrusteeFeePool.sol";
+import "./interface/ILiquidate.sol";
 
-contract Tunnel is Ownable, Pausable, ITunnel {
+contract Tunnel is Ownable, Pausable, ITunnel, ILiquidate {
     using SafeMath for uint256;
     using SafeDecimalMath for uint256;
 
@@ -46,6 +47,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     bytes32 public constant PARAM_BOOK = "ParamBook";
     bytes32 public constant TRUSTEE_FEE_POOL = "TrusteeFeePool";
     bytes32 public constant SATELLITE_POOL_FACTORY = "BTCSatellitePoolFactory";
+    bytes32 public constant LIQUIDATION = "Liquidation";
 
     mapping(address => uint) public borPledgeInfo;
     // total pledge value in one token
@@ -188,7 +190,7 @@ contract Tunnel is Ownable, Pausable, ITunnel {
             "Tunnel::redeem: not enough pledge provider token"
         );
         require(borPledgeInfo[account] >= amount, "Tunnel:redeem: Not enough bor amount");
-        require(lockInfo[account].length <= redeemLockTxLimit, "Tunnel::redeem: A user can only redeem at most five redeem, try again after extraction");
+        require(lockInfo[account].length < redeemLockTxLimit, "Tunnel::redeem: A user can only redeem at most five redeem, try again after extraction");
         borPledgeInfo[account] = borPledgeInfo[account].sub(amount);
         // send fee and burn ptoken
         // pledge token and fee
@@ -315,7 +317,6 @@ contract Tunnel is Ownable, Pausable, ITunnel {
     function pledgeRatio() public view returns(uint) {
         uint tvl = totalTVL();
         uint btokenValue = otokenERC20().totalSupply().multiplyDecimal(oracle().getPrice(tunnelKey));
-        // todo
         if (btokenValue == 0) {
             return 0;
         }
@@ -331,6 +332,10 @@ contract Tunnel is Ownable, Pausable, ITunnel {
         return canIssueValue.divideDecimal(tunnelKeyPrice);
     }
 
+    function liquidate(address account) public override onlyLiquidation {
+        borERC20().transfer(account, totalPledgeBOR);
+    }
+
     function unpause() public returns (bool) {
         if (totalPledgeBOR >= 3000e18) {
             _unpause();
@@ -340,6 +345,11 @@ contract Tunnel is Ownable, Pausable, ITunnel {
 
     modifier onlyBoringDAO {
         require(msg.sender == addrResolver.key2address(BORINGDAO));
+        _;
+    }
+
+    modifier onlyLiquidation {
+        require(msg.sender == addrResolver.requireAndKey2Address(LIQUIDATION, "Tunnel::liquidation contract no exist"));
         _;
     }
 
