@@ -13,7 +13,7 @@ contract ParamBook is Ownable {
     }
 
     function setMultiParams(bytes32[] memory names, uint[] memory values) public onlyOwner {
-        require(names.length == values.length);
+        require(names.length == values.length, "ParamBook::setMultiParams:param length not match");
         for (uint i=0; i < names.length; i++ ) {
             params[names[i]] = values[i];
         }
@@ -28,8 +28,8 @@ contract ParamBook is Ownable {
     }
 
     function setMultiParams2(bytes32[] memory names1, bytes32[] memory names2, uint[] memory values) public onlyOwner {
-        require(names1.length == names2.length);
-        require(names1.length == values.length);
+        require(names1.length == names2.length, "ParamBook::setMultiParams2:param length not match");
+        require(names1.length == values.length, "ParamBook::setMultiParams2:param length not match");
         for(uint i=0; i < names1.length; i++) {
             params2[names1[i]][names2[i]] = values[i];
         }

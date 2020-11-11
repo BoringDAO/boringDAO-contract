@@ -34,6 +34,9 @@ contract Liquidation is AccessControl {
     mapping(address=>mapping(address=>mapping(address=>bool))) public confirm;
     mapping(address=>mapping(address=>uint)) public confirmCount;
 
+    mapping(address=>mapping(address=>bool)) public unpauseConfirm;
+    mapping(address=>uint) public unpausePoolConfirmCount;
+
     constructor(address _coreDev, address _addressReso) public {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         coreDev = _coreDev;
@@ -45,7 +48,7 @@ contract Liquidation is AccessControl {
     }
 
     function otoken() internal view returns (IPause) {
-        return IPause(addressReso.requireAndKey2Address(OBTC, "Liquidation::bBTC contract not exist"));
+        return IPause(addressReso.requireAndKey2Address(OBTC, "Liquidation::oBTC contract not exist"));
     }
 
     function setIsSatellitePool(address pool, bool state) public {
@@ -76,7 +79,7 @@ contract Liquidation is AccessControl {
     }
 
     function unpause() public onlyPauser {
-        require(systemPause == true, "liquidation::unpause:should paused when call unpause()");
+        require(systemPause == true, "Liquidation::unpause:should paused when call unpause()");
         if (msg.sender == coreDev) {
             shouldPauseDev = false;
         } else {
@@ -88,16 +91,31 @@ contract Liquidation is AccessControl {
         }
     }
 
+    // unpause satellitepool before unpause()
+    function unpauseSatellitePool(address pool) public onlyTrustee {
+        require(systemPause == true, "Liquidation::unpauseSatellitePool:systemPause should paused when call unpause()");
+        require(isSatellitePool[pool] == true, "Liquidation::unpauseSatellitePool:Not SatellitePool");
+        if(unpauseConfirm[msg.sender][pool] == false) {
+            unpauseConfirm[msg.sender][pool] == true;
+        }
+        unpausePoolConfirmCount[pool] = unpausePoolConfirmCount[pool].add(1);
+        uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::withdraw: boringDAO contract not exist")).getRoleMemberCount(TRUSTEE_ROLE);
+        uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(1);
+        if (unpausePoolConfirmCount[pool] >= threshold) {
+            IPause(pool).unpause();
+        }
+    }
+
     function confirmWithdraw(address target, address to) public onlyTrustee {
         if(systemPause == true && confirm[msg.sender][target][to] == false) {
             confirm[msg.sender][target][to] = true;
-            confirmCount[target][to].add(1);
+            confirmCount[target][to] = confirmCount[target][to].add(1);
         }
     }
 
     function withdraw(address target, address to) public onlyPauser {
         require(systemPause == true, "Liquidation::withdraw:system not pause");
-        require(isSatellitePool[target] == true, "Liquidation::withdraw:Not SatellitePool");
+        require(isSatellitePool[target] == true, "Liquidation::withdraw:Not SatellitePool or tunnel");
         uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::withdraw: boringDAO contract not exist")).getRoleMemberCount(TRUSTEE_ROLE);
         uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(1);
         if (confirmCount[target][to] >= threshold) {

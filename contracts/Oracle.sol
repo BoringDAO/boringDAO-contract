@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.6.8;
+pragma solidity ^0.6.12;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interface/IOracle.sol";
@@ -11,6 +11,7 @@ contract Oracle is AccessControl, IOracle {
 
     constructor() public {
         _setupRole(ORACLE_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function setPrice(bytes32 _symbol, uint256 _price) public override  onlyOracle{

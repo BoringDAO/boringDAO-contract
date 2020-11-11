@@ -87,7 +87,7 @@ contract TimeDistribution is Ownable {
         DistributionInfo storage info = infos[msg.sender];
         uint256 nowtime = Math.min(block.timestamp, info.endTs);
         return
-            (nowtime - info.beginTs).mul(info.amount).div(info.duration).sub(
+            (nowtime.sub(info.beginTs)).mul(info.amount).div(info.duration).sub(
                 info.claimedAmount
             );
     }

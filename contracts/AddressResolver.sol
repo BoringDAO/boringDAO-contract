@@ -18,7 +18,7 @@ contract AddressResolver is Ownable, IAddressResolver {
     }
 
     function setMultiAddress(bytes32[] memory keys, address[] memory addrs) public override onlyOwner {
-        require(keys.length == addrs.length, "parmameter number not match");
+        require(keys.length == addrs.length, "AddressResolver::setMultiAddress:parameter number not match");
         for (uint i=0; i < keys.length; i++) {
             key2address[keys[i]] = addrs[i];
             address2key[addrs[i]] = keys[i];
