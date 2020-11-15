@@ -2,11 +2,11 @@
 
 pragma solidity ^0.6.12;
 
+import "./StakingRewardsLockFactory.sol";
 import "../interface/ISatellitePool.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./SatellitePool.sol";
-import "./SatellitePoolRewardsLock.sol";
 
 contract SatellitePoolFactory is Ownable{
 
@@ -44,7 +44,7 @@ contract SatellitePoolFactory is Ownable{
     }
 
     function deploy(address stakingToken, address _liquidation, 
-    address _oracle, bytes32 _sts, uint256 _lockDuration, uint256 _unlockPercent, uint256 _lockPercent, uint256 _decimal) public onlyOwner {
+    address _oracle, bytes32 _sts, uint256 _lockDuration, uint256 _unlockPercent, uint256 _lockPercent) public onlyOwner {
 
         require(
             poolByStakingToken[stakingToken] == address(0),
@@ -61,9 +61,7 @@ contract SatellitePoolFactory is Ownable{
                 _sts,
                 _lockDuration,
                 _unlockPercent,
-                _lockPercent,
-                msg.sender,
-                _decimal
+                _lockPercent
             )
         );
         stakingTokens.push(stakingToken);
@@ -87,7 +85,7 @@ contract SatellitePoolFactory is Ownable{
             IERC20(rewardsToken).transfer(poolByStakingToken[stakingToken], rewardAmount),
             "SatellitePoolFactory::notifyRewardAmount: transfer failed"
         );
-        SatellitePoolRewardsLock(poolByStakingToken[stakingToken]).notifyRewardAmount(
+        StakingRewardsLock(poolByStakingToken[stakingToken]).notifyRewardAmount(
             rewardAmount,
             duration
         );

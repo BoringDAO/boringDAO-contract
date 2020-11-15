@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interface/IOracle.sol";
 
 contract Oracle is AccessControl, IOracle {
-    bytes32 public ORACLE_ROLE = "ORACLE_ROLE";
+    bytes32 public ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
     mapping(bytes32 => uint256) public priceOf;
 
