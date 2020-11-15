@@ -3,7 +3,6 @@
 pragma solidity ^0.6.12;
 
 import "./BaseToken.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Snapshot.sol";
 
 contract OToken is BaseToken {
 

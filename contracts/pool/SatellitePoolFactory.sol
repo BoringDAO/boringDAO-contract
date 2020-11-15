@@ -2,7 +2,6 @@
 
 pragma solidity ^0.6.12;
 
-import "./StakingRewardsLockFactory.sol";
 import "../interface/ISatellitePool.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -61,7 +60,8 @@ contract SatellitePoolFactory is Ownable{
                 _sts,
                 _lockDuration,
                 _unlockPercent,
-                _lockPercent
+                _lockPercent,
+                msg.sender
             )
         );
         stakingTokens.push(stakingToken);

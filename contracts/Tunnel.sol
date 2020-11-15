@@ -43,7 +43,7 @@ contract Tunnel is Ownable, Pausable, ITunnel, ILiquidate {
     bytes32 public constant BOR = "BOR";
     bytes32 public constant PLEDGE_RATE = "pledge_rate";
     bytes32 public constant NETWORK_FEE = "network_fee";
-    bytes32 public constant PLEDGE_TOKEN = "PPT-BTC";
+    bytes32 public constant PLEDGE_TOKEN = "oBTC-PPT";
     bytes32 public constant PARAM_BOOK = "ParamBook";
     bytes32 public constant TRUSTEE_FEE_POOL = "TrusteeFeePool";
     bytes32 public constant SATELLITE_POOL_FACTORY = "BTCSatellitePoolFactory";
