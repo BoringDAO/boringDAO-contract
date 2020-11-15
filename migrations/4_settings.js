@@ -45,7 +45,7 @@ module.exports = async (deployer, network, accounts) => {
   const oBTC = await OToken.deployed();
   const pptoken = await PPToken.deployed();
 
-  let keys = ['AddressBook', 'ParamBook', 'Oracle', 'FeePool', 'InsurancePool', 'BoringDAO', 'MintProposal', 'BTC', 'BOR', 'oBTC', "PPT-BTC", "DevUser"].map(toBytes32)
+  let keys = ['AddressBook', 'ParamBook', 'Oracle', 'FeePool', 'InsurancePool', 'BoringDAO', 'MintProposal', 'BTC', 'BOR', 'oBTC', "oBTC-PPT", "DevUser"].map(toBytes32)
   let addrs = [addrBook.address, pb.address, oracle.address, feePool.address, insurancePool.address, boringDAO.address, mintProposal.address, tunnel.address, bor.address, oBTC.address, pptoken.address, accounts[4]];
 
   await addrResolver.setMultiAddress(keys, addrs);
@@ -57,7 +57,7 @@ module.exports = async (deployer, network, accounts) => {
   let names1 = ['BTC', 'BTC', 'BTC', 'BTC', 'BTC', 'BTC', 'BTC', 'BTC', 'BTC'].map(toBytes32);
   let names2 = ['mint_fee', 'burn_fee', 'mint_fee_trustee', 'mint_fee_pledger', 'mint_fee_dev', 'burn_fee_insurance', 'burn_fee_pledger', 'pledge_rate', 'network_fee'].map(toBytes32)
   towei = (n) => Web3Utils.toWei(n) 
-  let values = ['0.002', '0.002', '0.15', '0.7', '0.15', '0.5', '0.5', '0.75', '0.0008'].map(towei);
+  let values = ['0.002', '0.002', '0.15', '0.7', '0.15', '0.5', '0.5', '1', '0.0008'].map(towei);
   await pb.setMultiParams2(names1, names2, values);
 
   // oracle
