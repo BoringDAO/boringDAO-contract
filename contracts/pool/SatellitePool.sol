@@ -16,6 +16,7 @@ contract SatellitePool is StakingRewardsLock, ILiquidate, Pausable, IPause{
     IOracle public oracle;
     bytes32 public stakingTokenSymbol;
     address public owner;
+    uint256 public diffDecimal;
 
     constructor(
         address _liquidation,
@@ -27,7 +28,8 @@ contract SatellitePool is StakingRewardsLock, ILiquidate, Pausable, IPause{
         uint256 _lockDuration,
         uint256 _unlockPercent,
         uint256 _lockPercent,
-        address _owner
+        address _owner,
+        uint256 _diffDecimal
     ) public 
         StakingRewardsLock(_rewardsDistribution, _rewardsToken, _stakingToken, _lockDuration, _unlockPercent, _lockPercent)
     {
@@ -35,6 +37,7 @@ contract SatellitePool is StakingRewardsLock, ILiquidate, Pausable, IPause{
         oracle = IOracle(_oracle);
         stakingTokenSymbol = _sts;
         owner = _owner;
+        diffDecimal = _diffDecimal;
     }
 
     function liquidate(address account) public override onlyLiquidation {
@@ -44,7 +47,7 @@ contract SatellitePool is StakingRewardsLock, ILiquidate, Pausable, IPause{
     function tvl() public view returns(uint){
         uint tokenAmount = stakingToken.balanceOf(address(this));
         uint price = oracle.getPrice(stakingTokenSymbol);
-        return tokenAmount.multiplyDecimal(price);
+        return tokenAmount.mul(10**(diffDecimal)).multiplyDecimal(price);
     }
     
     function withdraw(uint amount) public override whenNotPaused{
