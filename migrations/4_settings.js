@@ -7,6 +7,7 @@ const FeePool = artifacts.require("FeePool");
 const InsurancePool = artifacts.require("InsurancePool");
 const MintProposal = artifacts.require("MintProposal")
 const Bor = artifacts.require("Bor");
+const BorBSC = artifacts.require("BorBSC");
 const Tunnel = artifacts.require("Tunnel");
 const OToken = artifacts.require("OToken");
 const PPToken = artifacts.require("PPToken");
@@ -30,6 +31,13 @@ module.exports = async (deployer, network, accounts) => {
     );
   }
 
+  let bor;
+  if (network === "bsc" || network === "bsc_testnet") {
+    bor = await BorBSC.deployed();
+  } else {
+    bor = await Bor.deployed();
+  }
+
   // address resolver settings
   const addrResolver = await AddressResolver.deployed();
 
@@ -41,11 +49,10 @@ module.exports = async (deployer, network, accounts) => {
   const boringDAO = await BoringDAO.deployed();
   const mintProposal = await MintProposal.deployed();
   const tunnel = await Tunnel.deployed();
-  const bor = await Bor.deployed();
   const oBTC = await OToken.deployed();
   const pptoken = await PPToken.deployed();
 
-  let keys = ['AddressBook', 'ParamBook', 'Oracle', 'FeePool', 'InsurancePool', 'BoringDAO', 'MintProposal', 'BTC', 'BOR', 'oBTC', "PPT-BTC", "DevUser"].map(toBytes32)
+  let keys = ['AddressBook', 'ParamBook', 'Oracle', 'FeePool', 'InsurancePool', 'BoringDAO', 'MintProposal', 'BTC', 'BOR', 'oBTC', "oBTC-PPT", "DevUser"].map(toBytes32)
   let addrs = [addrBook.address, pb.address, oracle.address, feePool.address, insurancePool.address, boringDAO.address, mintProposal.address, tunnel.address, bor.address, oBTC.address, pptoken.address, accounts[4]];
 
   await addrResolver.setMultiAddress(keys, addrs);
@@ -71,13 +78,13 @@ module.exports = async (deployer, network, accounts) => {
     await oracle.setMultiPrice(symbols, prices);
   }
 
-  if (network === "ropsten" || network === "kovan") {
+  if (network === "ropsten" || network === "kovan" || network === "bsc_testnet") {
     // active tunnel
-    await bor.approve(boringDAO.address, towei("60000"));
-     await tunnel.setLockDuration(3600);
-     await bor.approve(boringDAO.address, Web3Utils.toWei("10000"));
-     await boringDAO.pledge(toBytes32("BTC"), Web3Utils.toWei("10000"));
-     await tunnel.unpause();
+    await tunnel.setLockDuration(3600);
+    await bor.approve(boringDAO.address, Web3Utils.toWei("3000"));
+    await boringDAO.pledge(toBytes32("BTC"), Web3Utils.toWei("3000"));
+    await tunnel.unpause();
+    await bor.approve(boringDAO.address, towei("6000"));
   } else if (network === "development") {
     await tunnel.setLockDuration(60);
   }
