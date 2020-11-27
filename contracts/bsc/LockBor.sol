@@ -11,21 +11,21 @@ contract LockBor is Ownable{
     using SafeERC20 for IERC20;
 
     IERC20 public bor;
-    address public admin;
+    address public unlocker;
 
     event Lock(address locker, address recipient, uint amount);
     event Unlock(address recipient, uint amount);
     event ChangeAdmin(address oldAdmin, address newAdmin);
 
-    constructor(address _bor, address _admin) public {
+    constructor(address _bor, address _unlocker) public {
         bor = IERC20(_bor);
-        admin = _admin;
+        unlocker = _unlocker;
     }
 
     function setAdmin(address account) public onlyOwner{
-        address oldAdmin = admin;
-        admin = account;
-        emit ChangeAdmin(oldAdmin, account);
+        address oldUnlocker = unlocker;
+        unlocker = account;
+        emit ChangeAdmin(oldUnlocker, account);
     }
 
     function lock(address recipient, uint amount) public {
@@ -34,7 +34,7 @@ contract LockBor is Ownable{
     }
 
     function unlock(address recipient, uint amount) public {
-        require(msg.sender == admin, "LockBor::unlock:only admin can unlock");
+        require(msg.sender == unlocker, "LockBor::unlock:only unlocker can unlock");
         bor.safeTransfer(recipient, amount);
         emit Unlock(recipient, amount);
     }
