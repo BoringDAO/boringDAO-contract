@@ -4,13 +4,15 @@ pragma solidity ^0.6.12;
 
 import "./interface/IAddressResolver.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interface/IMintProposal.sol";
 
-contract MintProposal is IMintProposal {
+contract MintProposal is IMintProposal, Ownable {
     using SafeMath for uint256;
 
     bytes32 public constant BORINGDAO = "BoringDAO";
     IAddressResolver addrReso;
+    uint public diff=1;
 
     constructor(IAddressResolver _addrResovler) public {
         addrReso = _addrResovler;
@@ -30,6 +32,10 @@ contract MintProposal is IMintProposal {
     // mapping(address => bool) voteState;
 
     mapping(bytes32 => Proposal) public proposals;
+
+    function setDiff(uint _diff) public onlyOwner {
+        diff = _diff;
+    }
 
     function approve(
         bytes32 _tunnelKey,
@@ -74,7 +80,7 @@ contract MintProposal is IMintProposal {
             emit VoteMintProposal(_tunnelKey, _txid, _amount, to, trustee, p.voteCount, trusteeCount);
         }
         Proposal storage p = proposals[pid];
-        uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(1);
+        uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(diff);
         if (p.voteCount >= threshold) {
             p.finished = true;
             return true;
