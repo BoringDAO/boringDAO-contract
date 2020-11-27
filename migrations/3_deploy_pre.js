@@ -9,6 +9,7 @@ const Tunnel = artifacts.require("Tunnel");
 const OToken = artifacts.require("OToken");
 const PPToken = artifacts.require("PPToken");
 const Bor = artifacts.require("Bor");
+const BorBsc = artifacts.require("BorBsc");
 const {trusteesAddress, btcMultiSignAddress} = require("../trustee.json");
 
 const Web3Utils = require('web3-utils');
@@ -23,8 +24,12 @@ module.exports = async (deployer, network, accounts) => {
         console.log("trustee2", accounts[2]);
         console.log("trustee3", accounts[3]);
     }
-
-    const bor = await Bor.deployed();
+    let bor;
+    if(network === "bsc" || network === "bsc_testnet") {
+        bor = await BorBsc.deployed();
+    } else {
+        bor = await Bor.deployed();
+    }
     
     await deployer.deploy(AddressResolver);
     const addrResolver = await AddressResolver.deployed();
