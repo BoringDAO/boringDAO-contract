@@ -1,0 +1,141 @@
+# Introduction to BoringDAO
+
+
+
+## 1. What is BoringDAO
+
+BoringDAO is a decentralized bridge that connects all blockchain assets, we offer users a safe way to maximize their utilization rate of crypto assets.
+
+
+
+## 2. Why we need BoringDAO
+
+- Decentralized Asset Custody. (Check who's protecting the key)
+- Double pledge mechanism can bring oBTC 200% Security compare to other solution.
+- more incentives for the participating user.
+- The Security level will upgrade when we onboard more Multi-Sig signers in next version.
+- Signers selected will become permissionless and automatically in 2021.
+
+Various Ethereum DeFi applications on Ethereum aim to solve only one problem: the increase in operational efficiency of funds in the Ethereum ecosystem. Today, most of the heavily-traded DeFi assets, such as ETH, USDT, DAI, USDC, etc., are issued on Ethereum. However, in reality, Ethereum and Ethereum-based token assets only accounts for a small proportion of the total market value of all cryptocurrencies. This means that, a large number of well-received cryptocurrencies are incompatible with the current DeFi structure. For example, BTC, XRP, BCH are all left out of the “DeFi” world because they are not ERC-20 Tokens. The incompatibility makes these token-holders outsiders of the prosperous DeFi world, meaning that these non-ERC-20 token-holders cannot enjoy DeFi services, as well as the opportunities of liquidity mining and farming in DeFi. This seriously hinders the liquidity of crypto assets and causes unnecessary friction.
+
+We are aware that some projects are already working on addressing this problem. For example, WBTC [1] and renBTC [2] can allow a small number of Wrapped BTCs to be used within the Ethereum network. However, after deep diving into their design, some major limitation afloats: we believe their design is not open and secure enough, and only the tokenization of few assets are supported (BTC is the only token being supported or BTC overwhelmingly dominates others). This only allows very limited assets to enter the DeFi world through WBTC. For example, currently only 20,000 WBTC were issued and the supply is highly dependent on distributors. Their redemption channel design is not unimpeded.
+
+BoringDAO’s mission is to help DeFi expand its compatibility in the form of DAO. BTC, XRP, BCH, BSV, LTC, ADA, EOS and other blockchain assets and their subsidiary tokens that have been left out can be converted into the wrapped token (ERC-20 token) decentrally and safely with low friction. These assets can participate in the broader DeFi world on Ethereum and finally usher in a brand-new open financial era.
+
+The creation of BoringDAO expands the current DeFi landscape supported by DeFi and will eventually serve as an important infrastructure that connects DeFi to the broader crypto world. BoringDAO will operate under community governance mechanisms, while BOR (Boring Token) will serve as BoringDAO’s native governance token.
+
+
+
+
+
+## 3. How does Tunnel work?
+
+The first DAO (called "Tunnel") is made for Bitcoin turn to ERC-20 Bitcoin, and the first tunnel name is oBTC, It helps BTC holders bring their Bitcoin to DeFi World.
+
+For each blockchain asset, there will be an exclusive minting tunnel operated in the form of DAO and performing bi-directional mapping between blockchain assets and ERC-20 tokens.
+
+Any community user can open a new tunnel freely through pledge BOR, but each blockchain asset can only have one tunnel. For example, Alice wants to wrap BSV into bBSV on Ethereum network, but the BoringDAO system has yet to create a channel for BSV. Then, Alice can stake a certain amount of BOR and create a BSV-bBSV wrapping tunnel. Although created, the tunnel will not be activated until BoringDAO community has pledged enough deposites that meets the requirement for a tunnel activation, in which Alice’s portion of the pledge will directly enter the pledge pool.
+
+
+
+### Mint - Make BTC Programmable
+
+- Transfer BTC into Multi-Sig wallet.
+- Get oBTC and $BOR reward from your ethereum address.
+
+Boring Token is the asset minted by BoringDAO, abbreviated as bToken. The bToken follows the ERC-20 Token standard which enables the wrapped assets to enter the Ethereum DeFi world.
+
+In this chapter, let’s take BTC as a typical example. The bToken minted by BoringDAO is an ERC-20 token backed by BTC and thus is named “Boring BTC”, abbreviated as bBTC. The marketing prices of these bBTC reflect the values of Bitcoins backing them.
+
+
+
+### Pledge - Create a Trustable enviroment for both BTC and oBTC
+
+- Pledge BOR token for lifting Tunnel capacity.
+- Get pledge provider token.
+- Farm with "PP token", get more $BOR reward.
+
+
+
+### Two Important Parameters of “the Tunnel”
+
+There are two important parameters in the creation of the Tunnel: pledging coefficient (k) and commission rate (m, n).
+
+In version 1, the pledge coefficient k of the tunnel is kept at 75-100%, while the commission rate for minting as well as redemption are both set at 0.2%, and the minting section requires extra network fees.
+
+In version 2, however, we aim to let tunnel operators decide on the pledging coefficient and commission rate.
+
+
+
+### Tunnel Settlement
+
+Tunnel settlement would only occur when the losses occur in the cryptoassets under custody. In V1 and V2 stages, in the event of cryptocurrency assets lost under custody, the corresponding minting tunnel will be frozen immediately for settlement. First, the asset custodian will confirm the remaining assets in the wallet and match them with the assets issued on the blockchain to calculate the exposure to be settled. Then, the tunnel pledge will be settled in an equal amount. After clearing, the multi-signature wallet will be replenished with assets, and then the minting will be available. In the V3 stage, dynamic clearing will be realized.
+
+
+
+### Tunnel Creation
+
+User needs to pledge at least 500 BOR for the initial tunnel creation. However, it should be noted that after the initial creation, the tunnel would maintain inactive until the pledge requirement for tunnel activation is met within 48 hours of initial tunnel creation. In version 1, the activation requirement of each tunnel is set to 3,000 BOR; that is, although the tunnel has been created after pledging 500 BOR, the tunnel would only start to create wrapped b-Tokens after a total of 3,000 BOR is pledged. After the activation requirement has been met, the tunnel will go live after a tunnel-creation countdown.
+
+Why require pledging BOR for proposals: to avoid a large number of meaningless proposals which cause waste of community’s energy; the BOR pre-pledged at the time of the proposal will be converted into the actual pledge of the tunnel as soon as the proposal is passed, allowing the tunnel to have the initial pledge amount and minting capacity.
+
+
+
+### Insurance
+
+Although the BoringDAO system is well designed, it does not mean that it is foolproof.
+
+50% of the redemption commission in the tunnel will be saved into the insurance pool. The insurance pool is wholly governed and controlled by the community. Only when the community proposal is met and the referendum is completed, the insurance amount locked in the contract will be used for claim settlement. Claim settlement is usually applied to deal with the Black Swan risk in the system.
+
+DAO insurance will provide the BoringDAO system with the third guarantee, allowing all assets to roam freely, safely, and without trust in the Ethereum network.
+
+
+
+## 4. How can I Participate in BoringDAO Ecosystem
+
+### Be a Minter
+
+- Transfer your BTC into BoringDAO with app.boringdao.com
+- Get your oBTC and BOR reward
+
+Pay a certain amount of commission fee to have one’s own non-ERC-20 token converted into a wrapped ERC-20 version, namely minting and redemption of one’s native cryptocurrency assets.
+
+### Be a Tunnel operator
+
+- Pledge your BOR token into oBTC "Tunnel" with app.boringdao.com
+- Lift the "Tunnel" capacity
+- Get your Pledge Provider Token in your ethereum address.
+
+Pledge BOR assets to set up a tunnel, be responsible for the complete minting and redemption process, and obtain a part of the commission paid by users.
+
+Each tunnel has “operators,” and their mission is to help users complete minting/redeeming cryptoassets in the tunnel.
+
+Explanation on participating in tunnel operation (pledge): BOR Holders participating in tunnel pledge will become operators of the tunnel. In other words, it works similarly to staking. For example, once the proposal is approved, the proposer will become the initial ‘operator’ of the tunnel because he has deposited BOR as a pledge for the tunnel at the proposal stage.
+
+Subsequently, when more operators join in, all operators will obtain the respective share of the tunnel commission according to the respective proportion of the pledge amount. However, at the same time, if there is a Black Swan risk in the custody assets of the tunnel, the tunnel pledge will be settled and compensated to the minting users in proportion.
+
+### Farmer
+
+- Put your oBTC into "Wild Wild West" for more $BOR reward
+- Put your PP Token into "Manifest Destiny" for more $BOR reward
+- Farm3/4 will announce soon in coming weeks.
+
+Farm in our pools, get competitive APY. 
+Derivative assets need scenarios, and assets issued through BoringDAO also need downstream scenarios and ecological support. In order to enable b assets to quickly obtain specific scenarios and ecological support in the early stage, BoringDAO has set up a staking pool in which users can receive rewards by pledging b assets, BOR, etc. We can vividly call this process “Boring Farming.” BOR distributed in this way accounts for about 30%.
+
+For example, Alice cast 2 bBTC through the tunnel. However, in the absence of early bBTC scenarios, bBTC assets cannot participate in other DeFi mining for the time being. Alternatively, b assets can participate in the staking rewards provided by BoringDAO and obtain objective BOR bonus.
+
+
+
+## 5. References
+
++ WBTC, HOW IT WORKS. Retrieved August 23, 2020, https://wbtc.network/
+
++ Ren, Developers Overview. Retrieved August 23, 2020, https://docs.renproject.io/developers/getting-started
+
++ MakerDAO, The Maker Protocol: MakerDAO’s Multi-Collateral Dai (MCD) System. Retrieved August 23, 2020, https://makerdao.com/en/whitepaper/#abstract
+
++ Synthetix, SYNTHETIXLITEPAPER V1.4. Retrieved March 2020, https://www.synthetix.io/uploads/synthetix_litepaper.pdf/
+
+
+
