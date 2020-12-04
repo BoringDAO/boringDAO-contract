@@ -96,7 +96,7 @@ contract Liquidation is AccessControl {
         require(systemPause == true, "Liquidation::unpauseSatellitePool:systemPause should paused when call unpause()");
         require(isSatellitePool[pool] == true, "Liquidation::unpauseSatellitePool:Not SatellitePool");
         if(unpauseConfirm[msg.sender][pool] == false) {
-            unpauseConfirm[msg.sender][pool] == true;
+            unpauseConfirm[msg.sender][pool] = true;
             unpausePoolConfirmCount[pool] = unpausePoolConfirmCount[pool].add(1);
         }
         uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::withdraw: boringDAO contract not exist")).getRoleMemberCount(TRUSTEE_ROLE);
