@@ -37,7 +37,7 @@ module.exports = async (deployer, network, accounts) => {
     await deployer.deploy(Liquidation, accounts[1], addrResolver.address);
     const liqui = await Liquidation.deployed();
 
-    await deployer.deploy(FeePool, addrResolver.address, toBytes32("BTC"), toBytes32("oBTC"), toBytes32("PPT-BTC"));
+    await deployer.deploy(FeePool, addrResolver.address, toBytes32("BTC"), toBytes32("oBTC"), toBytes32("oBTC-PPT"));
 
     await deployer.deploy(TrusteeFeePool, bor.address);
 
@@ -61,7 +61,7 @@ module.exports = async (deployer, network, accounts) => {
     await oBTC.grantRole(toBytes32("BURNER_ROLE"), tunnel.address);
 
     // PPToken
-    await deployer.deploy(PPToken, "Pledge Provider Token BTC", "PPT-BTC", 18, accounts[0]);
+    await deployer.deploy(PPToken, "Pledge Provider Token BTC", "oBTC-PPT", 18, accounts[0]);
     const pptoken = await PPToken.deployed()
     await pptoken.grantRole(toBytes32("MINTER_ROLE"), tunnel.address);
     await pptoken.grantRole(toBytes32("BURNER_ROLE"), tunnel.address);
