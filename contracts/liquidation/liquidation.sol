@@ -58,6 +58,13 @@ contract Liquidation is AccessControl {
             isSatellitePool[pool] = state;
             if (state == true) {
                 satellitePools.push(pool);
+            } else {
+                for (uint i=0; i < satellitePools.length; i++) {
+                    if (satellitePools[i] == pool) {
+                        satellitePools[i] == satellitePools[satellitePools.length];
+                        satellitePools.pop();
+                    }
+                }
             }
         }
     }
