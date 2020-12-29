@@ -303,7 +303,6 @@ contract Tunnel is Ownable, Pausable, ITunnel, ILiquidate {
         emit BurnOToken(
             account,
             amount,
-            boringDAO().getRandomTrustee(),
             assetAddress
         );
     }
@@ -356,7 +355,6 @@ contract Tunnel is Ownable, Pausable, ITunnel, ILiquidate {
     event BurnOToken(
         address indexed account,
         uint256 amount,
-        address proposer,
         string assetAddress
     );
 

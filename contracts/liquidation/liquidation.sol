@@ -30,6 +30,7 @@ contract Liquidation is AccessControl {
     IAddressResolver public addressReso;
 
     mapping(address => bool) public isSatellitePool;
+    address[] public satellitePools;
 
     mapping(address=>mapping(address=>mapping(address=>bool))) public confirm;
     mapping(address=>mapping(address=>uint)) public confirmCount;
@@ -55,11 +56,14 @@ contract Liquidation is AccessControl {
         require(msg.sender == coreDev, "Liquidation::setIsSatellitePool:caller is not coreDev");
         if(isSatellitePool[pool] != state) {
             isSatellitePool[pool] = state;
+            if (state == true) {
+                satellitePools.push(pool);
+            }
         }
     }
 
     // will pause the system
-    function pause(address[] memory pools) public onlyPauser {
+    function pause() public onlyPauser {
         if (msg.sender == coreDev) {
             shouldPauseDev = true;
         } else {
@@ -70,9 +74,9 @@ contract Liquidation is AccessControl {
             // pause the system
             boringDAO().pause();
             // pause satellitepool
-            for(uint i=0; i < pools.length; i++) {
-                if(isSatellitePool[pools[i]] == true) {
-                    IPause(pools[i]).pause();
+            for(uint i=0; i < satellitePools.length; i++) {
+                if(isSatellitePool[satellitePools[i]] == true) {
+                    IPause(satellitePools[i]).pause();
                 }
             }
         }

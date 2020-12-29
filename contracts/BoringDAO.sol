@@ -102,16 +102,6 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
         return getRoleMemberCount(TRUSTEE_ROLE);
     }
 
-    function getRandomTrustee() public override view returns (address) {
-        uint256 trusteeCount = getRoleMemberCount(TRUSTEE_ROLE);
-        uint256 index = uint256(
-            keccak256(abi.encodePacked(now, block.difficulty))
-        )
-            .mod(trusteeCount);
-        address trustee = getRoleMember(TRUSTEE_ROLE, index);
-        return trustee;
-    }
-
     function addTrustee(address account) public onlyAdmin {
         _setupRole(TRUSTEE_ROLE, account);
         trusteeFeePool().enter(account);
