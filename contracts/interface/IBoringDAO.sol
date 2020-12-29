@@ -13,6 +13,5 @@ interface IBoringDAO {
 
     function getTrustee(uint index) external view returns(address);
     function getTrusteeCount() external view returns(uint);
-    function getRandomTrustee() external view returns (address);
 
 }

@@ -16,6 +16,7 @@ contract SatellitePool is StakingRewardsLock, ILiquidate, Pausable, IPause{
     IOracle public oracle;
     bytes32 public stakingTokenSymbol;
     address public owner;
+    address public pendingOwner;
     uint256 public diffDecimal;
 
     constructor(
@@ -78,6 +79,12 @@ contract SatellitePool is StakingRewardsLock, ILiquidate, Pausable, IPause{
 
     function transferOwnership(address newOwner) public onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
-        owner = newOwner;
+        pendingOwner = newOwner;
+
+    }
+
+    function acceptOwner() public {
+        require(msg.sender == pendingOwner, "caller is not the pending owner");
+        owner = msg.sender;
     }
 }
