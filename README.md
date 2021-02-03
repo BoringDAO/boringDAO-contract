@@ -1,4 +1,4 @@
-# boring-contracts
+# BoringDAO-contracts
 
 ## How to deploy
 
