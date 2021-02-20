@@ -7,6 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract InsurancePool is Ownable {
     IERC20 public tokenContract;
 
+    constructor(IERC20 _tokenContract) public {
+        tokenContract = _tokenContract;
+    }
+
     function setTokenContract(IERC20 _tokenContract) public onlyOwner {
         tokenContract = _tokenContract;
     }

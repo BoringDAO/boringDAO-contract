@@ -15,8 +15,8 @@ contract FeePool is ReentrancyGuard, IFeePool{
     using SafeDecimalMath for uint;
 
     bytes32 public constant BOR = "BOR";
-    bytes32 public  OTOKEN;
-    bytes32 public PTOKEN;
+    bytes32 public constant OTOKEN = "oToken";
+    bytes32 public constant PPTOKEN = "ppToken";
 
     bytes32 public tunnelKey;
     IAddressResolver public addrReso;
@@ -33,11 +33,9 @@ contract FeePool is ReentrancyGuard, IFeePool{
 
     mapping(address => uint) private _balances;
 
-    constructor(IAddressResolver _addrReso, bytes32 _tunnelKey, bytes32 _btokenKey, bytes32 _ptokenKey) public {
+    constructor(IAddressResolver _addrReso, bytes32 _tunnelKey) public {
         addrReso = _addrReso;
         tunnelKey = _tunnelKey;
-        OTOKEN = _btokenKey;
-        PTOKEN = _ptokenKey;
     }
 
     function bor() internal view returns (IERC20) {
@@ -45,11 +43,11 @@ contract FeePool is ReentrancyGuard, IFeePool{
     }
 
     function otoken() internal view returns(IERC20) {
-        return IERC20(addrReso.requireAndKey2Address(OTOKEN, "oToken contract is address(0) in FeePool"));
+        return IERC20(addrReso.requireKKAddrs(tunnelKey, OTOKEN, "oToken contract is address(0) in FeePool"));
     }
 
     function ptoken() internal view returns(IERC20) {
-        return IERC20(addrReso.requireAndKey2Address(PTOKEN, "oToken contract is address(0) in FeePool"));
+        return IERC20(addrReso.requireKKAddrs(tunnelKey, PPTOKEN, "oToken contract is address(0) in FeePool"));
     }
 
     function totalSupply() external view returns (uint256) {

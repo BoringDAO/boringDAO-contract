@@ -10,4 +10,10 @@ interface IAddressResolver {
 
     function setAddress(bytes32 key, address addr) external;
     function setMultiAddress(bytes32[] memory keys, address[] memory addrs) external;
+    
+    function setKkAddr(bytes32 k1, bytes32 k2, address addr) external;
+    function setMultiKKAddr(bytes32[] memory k1s, bytes32[] memory k2s, address[] memory addrs) external;
+
+    function kk2addr(bytes32 k1, bytes32 k2) external view returns(address);
+    function requireKKAddrs(bytes32 k1, bytes32 k2, string calldata reason) external view returns(address);
 }

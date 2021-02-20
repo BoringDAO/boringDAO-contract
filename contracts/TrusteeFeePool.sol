@@ -11,7 +11,7 @@ contract TrusteeFeePool is Ownable, ITrusteeFeePool{
     using SafeMath for uint256;
     
      uint256 public perTrustee;
-     bytes32 public TRUSTEE_ROLE = "TRUSTEE_ROLE";
+     bytes32 public tunnelKey;
 
      mapping(address=>uint256) public userPerPaid;
      mapping(address=>uint256) public userReward;
@@ -21,12 +21,15 @@ contract TrusteeFeePool is Ownable, ITrusteeFeePool{
      address public boringDAO;
      address public tunnel;
      
-     constructor(address _rewardToken) public {
+     constructor(address _rewardToken, bytes32 _tunnelKey, address _boringDAO, address _tunnel) public {
          rewardToken = IERC20(_rewardToken);
+         tunnelKey = _tunnelKey;
+         boringDAO = _boringDAO;
+         tunnel = _tunnel;
      }
 
      function trusteeCount() internal view returns(uint){
-         return ITrusteeCount(boringDAO).getRoleMemberCount(TRUSTEE_ROLE);
+         return ITrusteeCount(boringDAO).getRoleMemberCount(tunnelKey);
      }
      
      function setBoringDAO(address _boringDAO) external onlyOwner {
@@ -48,14 +51,18 @@ contract TrusteeFeePool is Ownable, ITrusteeFeePool{
      function claim() public updateReward(msg.sender){
          uint reward = userReward[msg.sender];
          userReward[msg.sender] = 0;
-         rewardToken.transfer(msg.sender, reward);
+         if (reward > 0) {
+            rewardToken.transfer(msg.sender, reward);
+         }
      }
      
      function enter(address account) external override onlyBoringDAO updateReward(account){
          balanceOf[account] = 1;
          uint reward = userReward[msg.sender];
          userReward[msg.sender] = 0;
-         rewardToken.transfer(msg.sender, reward);
+         if (reward > 0) {
+            rewardToken.transfer(msg.sender, reward);
+         }
 
      }
      

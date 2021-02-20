@@ -18,9 +18,9 @@ contract Liquidation is AccessControl {
 
     using SafeMath for uint;
 
-    bytes32 public constant TRUSTEE_ROLE = "TRUSTEE_ROLE";
+    bytes32 public constant OTOKEN = "oToken";
     bytes32 public constant BORING_DAO = "BoringDAO";
-    bytes32 public constant OBTC = "oBTC";
+    bytes32 public tunnelKey;
     address public coreDev;
 
     bool public shouldPauseDev;
@@ -38,10 +38,11 @@ contract Liquidation is AccessControl {
     mapping(address=>mapping(address=>bool)) public unpauseConfirm;
     mapping(address=>uint) public unpausePoolConfirmCount;
 
-    constructor(address _coreDev, address _addressReso) public {
+    constructor(address _coreDev, address _addressReso, bytes32 _tunnelKey) public {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         coreDev = _coreDev;
         addressReso = IAddressResolver(_addressReso);
+        tunnelKey = _tunnelKey;
     }
 
     function boringDAO() internal view returns (IPause) {
@@ -49,7 +50,7 @@ contract Liquidation is AccessControl {
     }
 
     function otoken() internal view returns (IPause) {
-        return IPause(addressReso.requireAndKey2Address(OBTC, "Liquidation::oBTC contract not exist"));
+        return IPause(addressReso.requireKKAddrs(tunnelKey, OTOKEN, "Liquidation::oBTC contract not exist"));
     }
 
     function setIsSatellitePool(address pool, bool state) public {
@@ -110,7 +111,7 @@ contract Liquidation is AccessControl {
             unpauseConfirm[msg.sender][pool] = true;
             unpausePoolConfirmCount[pool] = unpausePoolConfirmCount[pool].add(1);
         }
-        uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::withdraw: boringDAO contract not exist")).getRoleMemberCount(TRUSTEE_ROLE);
+        uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::withdraw: boringDAO contract not exist")).getRoleMemberCount(tunnelKey);
         uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(1);
         if (unpausePoolConfirmCount[pool] >= threshold) {
             IPause(pool).unpause();
@@ -127,7 +128,7 @@ contract Liquidation is AccessControl {
     function withdraw(address target, address to) public onlyPauser {
         require(systemPause == true, "Liquidation::withdraw:system not pause");
         require(isSatellitePool[target] == true, "Liquidation::withdraw:Not SatellitePool or tunnel");
-        uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::withdraw: boringDAO contract not exist")).getRoleMemberCount(TRUSTEE_ROLE);
+        uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::withdraw: boringDAO contract not exist")).getRoleMemberCount(tunnelKey);
         uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(1);
         if (confirmCount[target][to] >= threshold) {
             ILiquidate(target).liquidate(to);
@@ -136,12 +137,12 @@ contract Liquidation is AccessControl {
 
 
     modifier onlyPauser {
-        require(msg.sender == coreDev || IHasRole(address(boringDAO())).hashRole(TRUSTEE_ROLE, msg.sender), "caller is not a pauser");
+        require(msg.sender == coreDev || IHasRole(address(boringDAO())).hashRole(tunnelKey, msg.sender), "caller is not a pauser");
         _;
     }
 
     modifier onlyTrustee {
-        require(IHasRole(address(boringDAO())).hashRole(TRUSTEE_ROLE, msg.sender), "caller is not a trustee");
+        require(IHasRole(address(boringDAO())).hashRole(tunnelKey, msg.sender), "caller is not a trustee");
         _;
     }
 }
