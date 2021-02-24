@@ -9,6 +9,7 @@ contract BorBSC is ERC20, AccessControl {
     bytes32 public constant CROSSER_ROLE = "CROSSER_ROLE";
 
     address public ethBor;
+    mapping(string => bool) public txMinted;
 
     event CrossBurn(
         address ethToken,
@@ -22,7 +23,8 @@ contract BorBSC is ERC20, AccessControl {
         address bscToken,
         address from,
         address to,
-        uint256 amount
+        uint256 amount,
+        string txid
     );
 
     constructor(
@@ -39,10 +41,12 @@ contract BorBSC is ERC20, AccessControl {
     function crossMint(
         address addrFromETH,
         address recepient,
-        uint256 amount
-    ) public onlyCrosser{
+        uint256 amount,
+        string memory _txid
+    ) public onlyCrosser whenNotMinted(_txid) {
+        txMinted[_txid] = true;
         _mint(recepient, amount);
-        CrossMint(ethBor, address(this), addrFromETH, recepient, amount);
+        CrossMint(ethBor, address(this), addrFromETH, recepient, amount, _txid);
     }
 
     function crossBurn(address recipient, uint256 amount) public {
@@ -51,7 +55,15 @@ contract BorBSC is ERC20, AccessControl {
     }
 
     modifier onlyCrosser {
-        require(hasRole(CROSSER_ROLE, msg.sender), "BorBSC::caller is not crosser");
+        require(
+            hasRole(CROSSER_ROLE, msg.sender),
+            "BorBSC::caller is not crosser"
+        );
+        _;
+    }
+
+    modifier whenNotMinted(string memory _txid) {
+        require(txMinted[_txid] == false, "tx minted");
         _;
     }
 }
