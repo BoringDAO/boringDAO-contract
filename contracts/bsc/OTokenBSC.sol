@@ -6,11 +6,12 @@ import "../token/BaseToken.sol";
 
 contract OTokenBSC is BaseToken {
     bytes32 public constant CROSSER_ROLE = "CROSSER_ROLE";
+    address public ethToken;
     
     uint public originMintAmout;
     uint public crossMintAmount;
-    constructor(string memory _name, string memory _symbol, uint8 decimal_, address admin) public BaseToken(_name, _symbol, decimal_, admin) {
-
+    constructor(string memory _name, string memory _symbol, uint8 decimal_, address admin, address _ethToken) public BaseToken(_name, _symbol, decimal_, admin) {
+        ethToken = _ethToken;
     }
 
     function mint(address account, uint amount) public  override onlyMinter{
@@ -25,16 +26,16 @@ contract OTokenBSC is BaseToken {
         OriginBurn(account, amount);
     }
 
-    function crossMint(address account, uint amount) public onlyCrosser{
+    function crossMint(address addrFromETH, address addrToBSC, uint amount) public onlyCrosser{
         crossMintAmount = crossMintAmount.add(amount);
-        _mint(account, amount);
-        CrossMint(account, amount);
+        _mint(addrToBSC, amount);
+        CrossMint(ethToken, address(this), addrFromETH, addrToBSC, amount);
     }
 
     function crossBurn(address recepient, uint amount) public {
         crossMintAmount = crossMintAmount.sub(amount);
         _burn(msg.sender, amount);
-        CrossBurn(msg.sender, recepient, amount);
+        CrossBurn(ethToken, address(this), msg.sender, recepient, amount);
     }
 
     modifier onlyCrosser {
@@ -42,8 +43,8 @@ contract OTokenBSC is BaseToken {
         _;
     }
 
-    event CrossMint(address account, uint amount);
-    event CrossBurn(address from, address to, uint amount);
+    event CrossMint(address ethToken, address bscToken, address from, address to, uint amount);
+    event CrossBurn(address ethToken, address bscToken, address from, address to, uint amount);
     event OriginMint(address account, uint amount);
     event OriginBurn(address to, uint amount);
 
