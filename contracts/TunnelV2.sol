@@ -334,7 +334,7 @@ contract TunnelV2 is Ownable, Pausable, ITunnelV2, ILiquidate {
     }
 
     function unpause() public returns (bool) {
-        if (totalPledgeBOR >= 3000e18) {
+        if (totalPledgeBOR >= 1000e18) {
             _unpause();
         } 
         return paused();

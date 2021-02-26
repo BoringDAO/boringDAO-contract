@@ -5,22 +5,23 @@ pragma solidity ^0.6.12;
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract BorBSC is ERC20, AccessControl {
+contract CrossToken is ERC20, AccessControl {
     bytes32 public constant CROSSER_ROLE = "CROSSER_ROLE";
 
-    address public ethBor;
+    address public xToken;
     mapping(string => bool) public txMinted;
 
+    // xToken yToken eg. ethToken bscToken
     event CrossBurn(
-        address ethToken,
-        address bscToken,
+        address xToken,
+        address yToken,
         address from,
         address to,
         uint256 amount
     );
     event CrossMint(
-        address ethToken,
-        address bscToken,
+        address xToken,
+        address yToken,
         address from,
         address to,
         uint256 amount,
@@ -31,9 +32,9 @@ contract BorBSC is ERC20, AccessControl {
         string memory _name,
         string memory _symbol,
         address _crosser,
-        address _ethBor
+        address _xToken
     ) public ERC20(_name, _symbol) {
-        ethBor = _ethBor;
+        xToken = _xToken;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(CROSSER_ROLE, _crosser);
     }
@@ -46,18 +47,18 @@ contract BorBSC is ERC20, AccessControl {
     ) public onlyCrosser whenNotMinted(_txid) {
         txMinted[_txid] = true;
         _mint(recepient, amount);
-        CrossMint(ethBor, address(this), addrFromETH, recepient, amount, _txid);
+        CrossMint(xToken, address(this), addrFromETH, recepient, amount, _txid);
     }
 
     function crossBurn(address recipient, uint256 amount) public {
         _burn(msg.sender, amount);
-        emit CrossBurn(ethBor, address(this), msg.sender, recipient, amount);
+        emit CrossBurn(xToken, address(this), msg.sender, recipient, amount);
     }
 
     modifier onlyCrosser {
         require(
             hasRole(CROSSER_ROLE, msg.sender),
-            "BorBSC::caller is not crosser"
+            "CrossToken::caller is not crosser"
         );
         _;
     }

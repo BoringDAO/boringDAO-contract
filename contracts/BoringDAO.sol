@@ -88,19 +88,19 @@ contract BoringDAO is AccessControl, IBoringDAO, Pausable {
         return ITrusteeFeePool(addrReso.requireAndKey2Address(TRUSTEE_FEE_POOL, "BoringDAO::TrusteeFeePool is address(0)"));
     }
 
-    function getTrustee(uint256 index)
-        external
-        override
-        view
-        returns (address)
-    {
-        address addr = getRoleMember(TRUSTEE_ROLE, index);
-        return addr;
-    }
+    // function getTrustee(uint256 index)
+    //     external
+    //     override
+    //     view
+    //     returns (address)
+    // {
+    //     address addr = getRoleMember(TRUSTEE_ROLE, index);
+    //     return addr;
+    // }
 
-    function getTrusteeCount() external override view returns (uint256) {
-        return getRoleMemberCount(TRUSTEE_ROLE);
-    }
+    // function getTrusteeCount() external override view returns (uint256) {
+    //     return getRoleMemberCount(TRUSTEE_ROLE);
+    // }
 
     function addTrustee(address account) public onlyAdmin {
         _setupRole(TRUSTEE_ROLE, account);

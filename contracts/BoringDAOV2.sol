@@ -51,7 +51,7 @@ contract BoringDAOV2 is AccessControl, IBoringDAO, Pausable {
     mapping(string=>bool) public approveFlag;
 
     uint public reductionAmount=1000e18;
-
+    mapping(bytes32=>uint) public minMintAmount;
 
     constructor(IAddressResolver _addrReso, uint _mintCap, address _mine) public {
         // set up resolver
@@ -118,6 +118,10 @@ contract BoringDAOV2 is AccessControl, IBoringDAO, Pausable {
         mintCap = amount;
     }
 
+    function setMinMintAmount(bytes32 _tunnelKey, uint _amount) public onlyAdmin {
+        minMintAmount[_tunnelKey] = _amount;
+    }
+
     /**
     @notice tunnelKey is byte32("symbol"), eg. bytes32("BTC")
      */
@@ -174,7 +178,7 @@ contract BoringDAOV2 is AccessControl, IBoringDAO, Pausable {
         uint256 _amount,
         address to,
         string memory assetAddress
-    ) public override whenNotPaused whenTunnelNotPause(_tunnelKey) onlyTrustee(_tunnelKey) {
+    ) public override whenNotPaused whenTunnelNotPause(_tunnelKey) onlyTrustee(_tunnelKey) shouldMoreThan(_tunnelKey, _amount){
         if(to == address(0)) {
             if (approveFlag[_txid] == false) {
                 approveFlag[_txid] = true;
@@ -281,6 +285,11 @@ contract BoringDAOV2 is AccessControl, IBoringDAO, Pausable {
         _;
     }
 
+    modifier shouldMoreThan(bytes32 _tunnelKey, uint amount) {
+        require(amount >= minMintAmount[_tunnelKey], "Mint Amount should more than min amount");
+        _;
+    }
+
     event NotEnoughPledgeValue(
         bytes32 indexed _tunnelKey,
         string indexed _txid,
@@ -301,6 +310,15 @@ contract BoringDAOV2 is AccessControl, IBoringDAO, Pausable {
     event ETHAddressNotExist(
         bytes32 _tunnelKey,
         string _txid,
+        uint256 _amount,
+        address to,
+        address trustee,
+        string assetAddress
+    );
+
+    event NotEnoughMintAmount(
+        bytes32 indexed _tunnelKey,
+        string indexed _txid,
         uint256 _amount,
         address to,
         address trustee,

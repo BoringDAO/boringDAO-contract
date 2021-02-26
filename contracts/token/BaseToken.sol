@@ -22,11 +22,11 @@ contract BaseToken is ERC20Pausable, AccessControl, IMintBurn, IPause{
         _setupDecimals(decimal_);
     }
 
-    function mint(address account, uint amount) public override onlyMinter{
+    function mint(address account, uint amount) public virtual override onlyMinter{
         _mint(account, amount);
     }
 
-    function burn(address account, uint amount) public override onlyBurner{
+    function burn(address account, uint amount) public virtual override onlyBurner{
         _burn(account, amount);
     }
 
