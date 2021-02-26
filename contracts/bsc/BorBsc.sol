@@ -19,7 +19,7 @@ contract BorBSC is ERC20, AccessControl {
         uint256 amount
     );
     event CrossMint(
-        address ethTokenr,
+        address ethToken,
         address bscToken,
         address from,
         address to,

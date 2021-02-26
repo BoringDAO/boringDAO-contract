@@ -18,7 +18,7 @@ contract CrossLock is AccessControl {
 
     // ethToken => bscToken
     mapping(address => address) public supportToken;
-    mapping(address => mapping(address => uint256)) public lockAmount;
+    // mapping(address => mapping(address => uint256)) public lockAmount;
 
     // fee
     // leave ethereum
@@ -47,7 +47,6 @@ contract CrossLock is AccessControl {
         uint256 amount,
         string txid
     );
-    event ChangeAdmin(address oldAdmin, address newAdmin);
 
     constructor(address _crosser, address _feeTo) public {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -131,9 +130,6 @@ contract CrossLock is AccessControl {
     ) public onlySupportToken(token) {
         (uint256 feeAmount, uint256 remainAmount) =
             calculateFee(token, amount, 0);
-        lockAmount[token][msg.sender] = lockAmount[token][msg.sender].add(
-            remainAmount
-        );
         IERC20(token).safeTransferFrom(msg.sender, feeTo, feeAmount);
         IERC20(token).safeTransferFrom(msg.sender, address(this), remainAmount);
         emit Lock(
@@ -155,10 +151,10 @@ contract CrossLock is AccessControl {
         (uint256 feeAmount, uint256 remainAmount) =
             calculateFee(token, amount, 1);
         txUnlocked[_txid] = true;
-        lockAmount[token][recipient] = lockAmount[token][recipient].sub(amount);
+        // lockAmount[token][recipient] = lockAmount[token][recipient].sub(amount);
         IERC20(token).safeTransfer(feeTo, feeAmount);
         IERC20(token).safeTransfer(recipient, remainAmount);
-        emit Unlock(token, supportToken[token], from, recipient, amount, _txid);
+        emit Unlock(token, supportToken[token], from, recipient, remainAmount, _txid);
     }
 
     modifier onlySupportToken(address token) {

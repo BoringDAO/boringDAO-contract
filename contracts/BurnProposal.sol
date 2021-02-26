@@ -9,8 +9,6 @@ contract BurnProposal is Ownable{
 
     using SafeMath for uint;
 
-    bytes32 public constant TRUSTEE_ROLE = "TRUSTEE_ROLE";
-
     struct Proposal {
         string ethHash;
         string btcHash;
@@ -36,8 +34,8 @@ contract BurnProposal is Ownable{
         diff = _diff;
     }
 
-    function approve(string memory ethHash, string memory btcHash) public onlyTrustee{
-        string memory key = string(abi.encodePacked(ethHash, btcHash));
+    function approve(string memory ethHash, string memory btcHash, bytes32 _tunnelKey) public onlyTrustee(_tunnelKey) {
+        string memory key = string(abi.encodePacked(ethHash, btcHash, _tunnelKey));
         if (proposals[key].isExist == false) {
             Proposal memory p = Proposal({
                 ethHash: ethHash,
@@ -48,7 +46,7 @@ contract BurnProposal is Ownable{
             });
             proposals[key] = p;
             proposals[key].voteState[msg.sender] = true;
-            emit VoteBurnProposal(ethHash, btcHash, msg.sender, p.voteCount);
+            emit VoteBurnProposal(_tunnelKey, ethHash, btcHash, msg.sender, p.voteCount);
         } else {
             Proposal storage p = proposals[key];
             if(p.voteState[msg.sender] == true) {
@@ -59,33 +57,35 @@ contract BurnProposal is Ownable{
             }
             p.voteCount = p.voteCount.add(1);
             p.voteState[msg.sender] = true;
-            emit VoteBurnProposal(ethHash, btcHash, msg.sender, p.voteCount);
+            emit VoteBurnProposal(_tunnelKey, ethHash, btcHash, msg.sender, p.voteCount);
         }
         Proposal storage p = proposals[key];
-        uint trusteeCount = getTrusteeCount();
+        uint trusteeCount = getTrusteeCount(_tunnelKey);
         uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(diff);
         if (p.voteCount >= threshold) {
             p.finished = true;
-            emit BurnProposalSuccess(ethHash, btcHash);
+            emit BurnProposalSuccess(_tunnelKey, ethHash, btcHash);
         }
     }
 
-    function getTrusteeCount() internal view returns(uint){
-        return trustee.getRoleMemberCount(TRUSTEE_ROLE);
+    function getTrusteeCount(bytes32 _tunnelKey) internal view returns(uint){
+        return trustee.getRoleMemberCount(_tunnelKey);
     }
 
 
-    modifier onlyTrustee {
-        require(trustee.hasRole(TRUSTEE_ROLE, msg.sender), "Caller is not trustee");
+    modifier onlyTrustee(bytes32 _tunnelKey) {
+        require(trustee.hasRole(_tunnelKey, msg.sender), "Caller is not trustee");
         _;
     }
 
     event BurnProposalSuccess(
+        bytes32 _tunnelKey,
         string ethHash,
         string btcHash
     );
 
     event VoteBurnProposal(
+        bytes32 _tunnelKey,
         string ethHash,
         string btcHash,
         address voter,

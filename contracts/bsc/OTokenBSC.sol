@@ -29,6 +29,7 @@ contract OTokenBSC is BaseToken {
     }
 
     function burn(address account, uint256 amount) public override onlyBurner {
+        require(originMintAmout >= amount, "Not enough origin token to burn");
         originMintAmout = originMintAmout.sub(amount);
         _burn(account, amount);
         OriginBurn(account, amount);
