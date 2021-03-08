@@ -48,6 +48,14 @@ contract CrossLock is AccessControl {
         string txid
     );
 
+    event FeeChange(
+        address token,
+        uint256 lockFeeAmount,
+        uint256 lockFeeRatio,
+        uint256 unlockFeeAmount,
+        uint256 unlockFeeRatio
+    );
+
     constructor(address _crosser, address _feeTo) public {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(CROSSER_ROLE, _crosser);
@@ -97,10 +105,13 @@ contract CrossLock is AccessControl {
         uint256 _unlockFeeRatio
     ) public onlyAdmin {
         require(supportToken[token] != address(0), "Toke not Supported");
+        require(_lockFeeRatio <= 1e18, " lock fee ratio not correct");
+        require(_unlockFeeRatio <= 1e18, "unlock fee ratio not correct");
         lockFeeAmount[token] = _lockFeeAmount;
         lockFeeRatio[token] = _lockFeeRatio;
         unlockFeeAmount[token] = _unlockFeeAmount;
         unlockFeeRatio[token] = _unlockFeeRatio;
+        emit FeeChange(token, _lockFeeAmount, _lockFeeRatio, _unlockFeeAmount, _unlockFeeRatio);
     }
 
     function calculateFee(
