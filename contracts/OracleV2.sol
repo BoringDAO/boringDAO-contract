@@ -3,7 +3,7 @@ pragma solidity ^0.6.12;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interface/IOracle.sol";
-import "interfaces/AggregatorV3Interface.sol";
+import "./interface/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract OracleV2 is AccessControl, IOracle {
