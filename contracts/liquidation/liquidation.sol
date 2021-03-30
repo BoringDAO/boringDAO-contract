@@ -15,7 +15,6 @@ interface IHasRole {
 }
 
 contract Liquidation is AccessControl {
-
     using SafeMath for uint;
 
     bytes32 public constant OTOKEN = "oToken";
@@ -133,6 +132,16 @@ contract Liquidation is AccessControl {
         if (confirmCount[target][to] >= threshold) {
             ILiquidate(target).liquidate(to);
         }
+    }
+
+    function withdrawArray(address target, address to, uint256[] memory pids) public onlyPauser {
+        require(systemPause == true, "Liquidation::withdraw:system not pause");
+        require(isSatellitePool[target] == true, "Liquidation::withdraw:Not SatellitePool or tunnel");
+        uint trusteeCount = IHasRole(addressReso.requireAndKey2Address(BORING_DAO, "Liquidation::withdraw: boringDAO contract not exist")).getRoleMemberCount(tunnelKey);
+        uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(1);
+        if (confirmCount[target][to] >= threshold) {
+            ILiquidateArray(target).liquidateArray(to, pids);
+        } 
     }
 
 
