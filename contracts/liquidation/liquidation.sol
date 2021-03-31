@@ -10,7 +10,7 @@ import "../interface/IPause.sol";
 import "../interface/ILiquidate.sol";
 
 interface IHasRole {
-    function hashRole(bytes32 role, address account) external view returns (bool);
+    function hasRole(bytes32 role, address account) external view returns (bool);
     function getRoleMemberCount(bytes32 role) external view returns (uint256);
 }
 
@@ -146,12 +146,12 @@ contract Liquidation is AccessControl {
 
 
     modifier onlyPauser {
-        require(msg.sender == coreDev || IHasRole(address(boringDAO())).hashRole(tunnelKey, msg.sender), "caller is not a pauser");
+        require(msg.sender == coreDev || IHasRole(address(boringDAO())).hasRole(tunnelKey, msg.sender), "caller is not a pauser");
         _;
     }
 
     modifier onlyTrustee {
-        require(IHasRole(address(boringDAO())).hashRole(tunnelKey, msg.sender), "caller is not a trustee");
+        require(IHasRole(address(boringDAO())).hasRole(tunnelKey, msg.sender), "caller is not a trustee");
         _;
     }
 }

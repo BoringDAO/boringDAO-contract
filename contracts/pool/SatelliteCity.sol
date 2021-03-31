@@ -185,10 +185,6 @@ contract SatelliteCity is Ownable, Pausable, ILiquidateArray {
 
     // Deposit LP tokens to SatelliteCity for BorToken allocation.
     function deposit(uint256 _pid, uint256 _amount) public whenNotPaused {
-        if (tvlSwitcher) {
-            uint256 _tvl = calculateTVL();
-            setTVL(_tvl);
-        }
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
@@ -206,15 +202,14 @@ contract SatelliteCity is Ownable, Pausable, ILiquidateArray {
         );
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accTokenPerShare).div(1e12);
+        if (tvlSwitcher) {
+            tvl = calculateTVL();
+        }
         emit Deposit(msg.sender, _pid, _amount);
     }
 
     // Withdraw LP tokens from SatelliteCity.
     function withdraw(uint256 _pid, uint256 _amount) public whenNotPaused {
-        if (tvlSwitcher) {
-            uint256 _tvl = calculateTVL();
-            setTVL(_tvl);
-        }
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
@@ -227,6 +222,9 @@ contract SatelliteCity is Ownable, Pausable, ILiquidateArray {
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accTokenPerShare).div(1e12);
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
+        if (tvlSwitcher) {
+            tvl = calculateTVL();
+        }
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -289,15 +287,13 @@ contract SatelliteCity is Ownable, Pausable, ILiquidateArray {
                 address token0 = IPair(address(pool.lpToken)).token0();
                 // TODO: uint112 => uint256?
                 uint amount = lpAmount.mul(uint256(_reserve0)).div(lpSupply);
-                
                 string memory symbol = IERC20Metadata(token0).symbol();
                 uint8 decimals = IERC20Metadata(token0).decimals(); 
                 uint price = oracle.getPrice(stringToBytes32(symbol));
                 uint diff = uint256(18).sub(uint256(decimals));
                 _tvl = _tvl.add(amount.mul(10**(diff)).multiplyDecimal(price).mul(2)); 
             }
-        } 
-
+        }
         return _tvl;
     }
 
@@ -328,6 +324,11 @@ contract SatelliteCity is Ownable, Pausable, ILiquidateArray {
     function setLiquidation(address _liquidation) public onlyOwner {
         liquidation = _liquidation;
     }
+
+    function setOracle(address _oracle) public onlyOwner {
+        oracle = IOracle(_oracle);
+    }
+
 
     modifier onlyLiquidation {
         require(msg.sender == liquidation, "caller is not liquidator");
