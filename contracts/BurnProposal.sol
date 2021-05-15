@@ -21,6 +21,7 @@ contract BurnProposal is Ownable{
     mapping(string => Proposal) public proposals;
     IRole public trustee;
     uint256 public diff=1;
+    mapping(string => bool) public proposalResult;
 
     constructor(address _boringdao) public {
         trustee = IRole(_boringdao);
@@ -64,6 +65,7 @@ contract BurnProposal is Ownable{
         uint threshold = trusteeCount.mod(3) == 0 ? trusteeCount.mul(2).div(3) : trusteeCount.mul(2).div(3).add(diff);
         if (p.voteCount >= threshold) {
             p.finished = true;
+            proposalResult[ethHash] = true;
             emit BurnProposalSuccess(_tunnelKey, ethHash, btcHash);
         }
     }
