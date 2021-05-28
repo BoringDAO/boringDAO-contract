@@ -16,6 +16,7 @@ contract Boring is ERC20Burnable, Ownable{
     bool public switchOn = true;
 
     constructor(address _bor, uint _ratio) ERC20("BoringDAO", "BORING") {
+        require(_bor != address(0), "bor address cannot be 0");
         bor = IERC20(_bor);
         ratio = _ratio;
         // for people who transfer bor to borContract address
@@ -24,19 +25,21 @@ contract Boring is ERC20Burnable, Ownable{
         _mint(msg.sender, 29770922242336919137*_ratio);
     }
 
-    function setSwitchOn(bool _switchOn) public onlyOwner {
+    // the owner will be a timelock contract in the future
+    function setSwitchOn(bool _switchOn) external onlyOwner {
         require(switchOn != _switchOn, "dont need change switchon");
         switchOn = _switchOn;
+        emit SetSwitchOn(_switchOn);
     }
 
-    function toBoring(uint borAmount) public {
+    function toBoring(uint borAmount) external {
         uint boringAmount = borAmount*ratio;
         _mint(msg.sender, boringAmount);
         bor.safeTransferFrom(msg.sender, address(this), borAmount);
         emit ToBoring(msg.sender, borAmount, boringAmount); 
     }
 
-    function toBor(uint boringAmount) public onlySwitchOn {
+    function toBor(uint boringAmount) external onlySwitchOn {
         require(balanceOf(msg.sender) >= boringAmount, "Boring:Not enough boring");
         require(bor.balanceOf(address(this)) * ratio >= boringAmount, "Boring:Not enough bor");
         burn(boringAmount);
@@ -46,16 +49,17 @@ contract Boring is ERC20Burnable, Ownable{
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
-        super._beforeTokenTransfer(from, to, amount);
         require(to != address(this), "ERC20: transfer to the token contract address");
+        super._beforeTokenTransfer(from, to, amount);
      }
 
     modifier onlySwitchOn {
-        require(switchOn == true, "only switchOn true");
+        require(switchOn, "only switchOn true");
         _;
     }
 
     event ToBoring(address account, uint borAmount, uint boringAmount);
     event ToBor(address account, uint borAmount, uint boringAmount);
+    event SetSwitchOn(bool newState);
 
 }
